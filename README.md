@@ -60,7 +60,7 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
     ```bash
     npm install
     ```
-3.  **Configure API URL**: Open `src/services/AuthService.js` and update `API_URL` with your machine's IP address (e.g., `192.168.1.6`) if running on a physical device.
+3.  **Configure API URL**: Open `src/services/AuthService.js` and update `API_URL` with your machine's IP address if running on a physical device.
 4.  Start Metro Bundler:
     ```bash
     npm start
@@ -87,13 +87,10 @@ To run the app on your Android phone:
     -   Connect Phone & PC to the **same Wi-Fi**.
     -   Install the APK on your phone.
     -   Run `npm start` on your PC.
-    -   Shake phone -> **Dev Settings** -> **Debug server host & port** -> Enter your PC IP (`192.168.1.x:8081`).
+    -   Shake phone -> **Dev Settings** -> **Debug server host & port** -> Enter your PC IP.
     -   Reload the app.
 
 ---
 
 ## 🤝 Contributing
 Feel free to fork this repository and submit pull requests.
-
-## 📄 License
-MIT License
