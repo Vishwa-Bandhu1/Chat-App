@@ -1,0 +1,24 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp
+
+# Backend (Java/Spring Boot)
+backend/target/
+backend/*.class
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/**/*.iml
+backend/.gradle/
+backend/build/
+
+# Frontend (React Native) is handled by frontend/.gitignore mostly, but adding some safeguards
+node_modules/
+frontend/node_modules/
+frontend/android/app/build/
+frontend/ios/build/
+
+# Local IP config files
+ip.txt
+ip_ascii.txt
