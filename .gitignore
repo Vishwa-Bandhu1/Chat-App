@@ -12,6 +12,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 backend/**/*.iml
 backend/.gradle/
 backend/build/
+backend/src/main/resources/application-secrets.yml
 
 # Frontend (React Native) is handled by frontend/.gitignore mostly, but adding some safeguards
 node_modules/
