@@ -1,21 +1,4 @@
 spring:
-  application:
-    name: backend
   data:
     mongodb:
-      uri: mongodb+srv://vishwabandhu1150_db_user:Vishwamongodb%40933@cluster0.umjoudg.mongodb.net/chatapp?appName=Cluster0
-  main:
-    allow-circular-references: true
-
-server:
-  port: 8080
-
-jwt:
-  secret: ${JWT_SECRET:ThisIsAVeryLongSelectKeyForJWTTokenGenerationEnsureItIsLongEnough}
-  expiration: 86400000 # 24 hours in milliseconds
-
-logging:
-  level:
-    root: INFO
-    org.springframework.web: INFO
-    org.springframework.security: INFO
+      uri: ${MONGODB_URI}
