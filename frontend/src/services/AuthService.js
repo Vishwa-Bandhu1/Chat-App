@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Replace with your local machine's IP address if running on emulator/device
 // For Android Emulator, use 10.0.2.2. For physical device, use your PC's IP.
-const API_URL = 'http://192.168.1.6:8080/api/auth';
+const API_URL = 'http://10.0.2.2:8080/api/auth';
+
+import auth from '@react-native-firebase/auth';
 
 const AuthService = {
     login: async (usernameOrEmail, password) => {
@@ -24,6 +26,29 @@ const AuthService = {
             return response.data;
         } catch (error) {
             console.error('AuthService signup error:', error);
+            throw handleAxiosError(error);
+        }
+    },
+
+    // 1. Send OTP (Firebase)
+    signInWithPhoneNumber: async (phoneNumber) => {
+        try {
+            const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+            return confirmation;
+        } catch (error) {
+            console.error('AuthService signInWithPhoneNumber error:', error);
+            throw error;
+        }
+    },
+
+    // 2. Verify OTP (Firebase handles this via confirmation object in UI)
+    // But we need to verify the ID Token on backend
+    verifyIdToken: async (phoneNumber, idToken) => {
+        try {
+            const response = await axios.post(`${API_URL}/verify-otp`, { phoneNumber, idToken });
+            return response.data;
+        } catch (error) {
+            console.error('AuthService verifyIdToken error:', error);
             throw handleAxiosError(error);
         }
     }

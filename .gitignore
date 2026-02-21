@@ -23,3 +23,8 @@ frontend/ios/build/
 # Local IP config files
 ip.txt
 ip_ascii.txt
+
+# Private files
+*.properties
+google-services.json
+serviceAccountKey.json

@@ -6,6 +6,7 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
 
 -   **User Authentication**: Login and Signup with JWT security.
 -   **Real-time Messaging**: Instant chat using WebSocket (STOMP protocol).
+-   **User Directory**: Search for users and view all registered users.
 -   **Contacts Sync**: Automatically fetch and display device contacts.
 -   **Dynamic Profile**: Editable user profiles with avatars.
 -   **Dark Mode**: Toggle between Light and Dark themes.

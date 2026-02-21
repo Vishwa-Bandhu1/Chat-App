@@ -23,6 +23,9 @@ public class User implements UserDetails {
     @Indexed(unique = true)
     private String email;
 
+    @Indexed(unique = true)
+    private String phoneNumber;
+
     private String password;
 
     private String fullName;
@@ -30,6 +33,8 @@ public class User implements UserDetails {
     private String status;
     private LocalDateTime lastSeen;
     private boolean online;
+
+    private Role role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

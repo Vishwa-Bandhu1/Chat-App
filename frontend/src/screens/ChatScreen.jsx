@@ -1,87 +1,221 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ChatService from '../services/ChatService';
+import { AuthContext } from '../navigation/AppNavigator';
+import { launchImageLibrary } from 'react-native-image-picker';
+import axios from 'axios';
 
-// Dummy user for now - will be replaced by actual logged in user
-const CURRENT_USER = 'testuser';
+const API_URL = 'http://10.0.2.2:8080';
 
-const ChatScreen = ({ route }) => {
-    const { name } = route.params || { name: 'Chat' };
+const ChatScreen = ({ route, navigation }) => {
+    const { name, recipientId } = route.params || { name: 'Chat', recipientId: '' };
+    const { user } = useContext(AuthContext);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const flatListRef = useRef(null);
+
+    const currentUserId = user?.id || user?.userId;
 
     useEffect(() => {
-        // Connect to WebSocket on mount
+        if (!currentUserId || !recipientId) {
+            setLoading(false);
+            return;
+        }
+
+        const fetchHistory = async () => {
+            try {
+                const data = await ChatService.fetchMessages(currentUserId, recipientId, user.accessToken);
+                setMessages(data || []);
+                setLoading(false);
+                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchHistory();
+
         ChatService.connect((msg) => {
             console.log('Received message:', msg);
-            setMessages(prev => [...prev, msg]);
-        }, CURRENT_USER);
+            if (msg.senderId === recipientId || msg.recipientId === recipientId) {
+                setMessages(prev => [...prev, msg]);
+                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            }
+        }, user.username); // Use username for subscription
 
         return () => {
-            ChatService.disconnect();
+            // ChatService.disconnect(); 
         };
-    }, []);
+    }, [currentUserId, recipientId]);
 
-    const sendMessage = () => {
-        if (!inputText.trim()) return;
+    const sendMessage = async (content, type = 'TEXT') => {
+        if (!content.trim() && type === 'TEXT') return;
+        if (!recipientId) return;
 
         const chatMessage = {
-            senderId: CURRENT_USER,
-            recipientId: name, // Assuming 'name' is the recipient ID for now
-            content: inputText,
-            status: 'DELIVERED', // Optimistic update
+            senderId: currentUserId,
+            recipientId: recipientId,
+            content: content,
+            type: type,
+            status: 'DELIVERED',
             timestamp: new Date().toISOString()
         };
 
         // Optimistic UI update
-        setMessages(prev => [...prev, { ...chatMessage, id: Date.now().toString(), sender: 'me' }]);
+        const tempId = Date.now().toString();
+        setMessages(prev => [...prev, { ...chatMessage, id: tempId }]);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
-        ChatService.sendMessage(chatMessage);
-        setInputText('');
+        if (type === 'TEXT') setInputText('');
+
+        try {
+            ChatService.sendMessage(chatMessage);
+        } catch (error) {
+            console.error("Failed to send message", error);
+            Alert.alert("Error", "Failed to send message");
+            // Optionally remove message from UI on failure
+        }
     };
 
-    const renderItem = ({ item }) => (
-        <View style={[styles.bubble, item.senderId === CURRENT_USER || item.sender === 'me' ? styles.me : styles.them]}>
-            <Text style={[styles.msgText, item.senderId === CURRENT_USER || item.sender === 'me' ? styles.meText : styles.themText]}>{item.content || item.text}</Text>
-            <Text style={[styles.timeText, item.senderId === CURRENT_USER || item.sender === 'me' ? styles.meTime : styles.themTime]}>
-                {new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-        </View>
-    );
+    const handleImagePick = async () => {
+        const result = await launchImageLibrary({
+            mediaType: 'photo',
+            quality: 0.5,
+        });
+
+        if (result.didCancel) return;
+        if (result.errorMessage) {
+            Alert.alert('Error', result.errorMessage);
+            return;
+        }
+
+        const asset = result.assets[0];
+        setUploading(true);
+
+        try {
+            const fileUrl = await ChatService.uploadImage(asset.uri, user.accessToken);
+            sendMessage(fileUrl, 'IMAGE');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to upload image.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDeleteMessage = (item) => {
+        Alert.alert(
+            'Delete Message',
+            'Delete this message?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete', style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            if (item.id && !item.id.startsWith('temp_')) {
+                                await axios.delete(`${API_URL}/messages/${item.id}`, {
+                                    headers: { Authorization: `Bearer ${user.accessToken}` }
+                                });
+                            }
+                            setMessages(prev => prev.filter(m => m.id !== item.id));
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to delete message');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const renderItem = ({ item }) => {
+        const isMe = item.senderId === currentUserId;
+        return (
+            <TouchableOpacity
+                activeOpacity={0.7}
+                onLongPress={() => handleDeleteMessage(item)}
+                style={[styles.bubble, isMe ? styles.me : styles.them]}
+            >
+                {item.type === 'IMAGE' ? (
+                    <Image
+                        source={{ uri: item.content }}
+                        style={{ width: 200, height: 200, borderRadius: 10 }}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <Text style={[styles.msgText, isMe ? styles.meText : styles.themText]}>{item.content}</Text>
+                )}
+                <Text style={[styles.timeText, isMe ? styles.meTime : styles.themTime]}>
+                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => { /* back */ }}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <Text style={styles.headerTitle}>{name}</Text>
-                    {isTyping && <Text style={styles.typingIndicator}>Typing...</Text>}
+                    {uploading && <Text style={styles.typingIndicator}>Uploading image...</Text>}
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity
+                    style={{ marginRight: 15 }}
+                    onPress={() => navigation.navigate('Call', {
+                        recipientId,
+                        recipientName: name,
+                        isVideo: false,
+                        isIncoming: false,
+                    })}
+                >
+                    <Icon name="call-outline" size={22} color="#007AFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Call', {
+                        recipientId,
+                        recipientName: name,
+                        isVideo: true,
+                        isIncoming: false,
+                    })}
+                >
                     <Icon name="videocam-outline" size={24} color="#007AFF" />
                 </TouchableOpacity>
             </View>
-            <FlatList
-                data={messages}
-                renderItem={renderItem}
-                keyExtractor={item => item.id || Math.random().toString()}
-                contentContainerStyle={styles.list}
-            />
+
+            {loading ? (
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#007AFF" />
+                </View>
+            ) : (
+                <FlatList
+                    ref={flatListRef}
+                    data={messages}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id || Math.random().toString()}
+                    contentContainerStyle={styles.list}
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                />
+            )}
+
             <View style={styles.inputContainer}>
-                <TouchableOpacity style={styles.attachButton}>
-                    <Icon name="add" size={24} color="#007AFF" />
+                <TouchableOpacity style={styles.attachButton} onPress={handleImagePick} disabled={uploading}>
+                    {uploading ? <ActivityIndicator size="small" color="#007AFF" /> : <Icon name="image" size={24} color="#007AFF" />}
                 </TouchableOpacity>
                 <TextInput
                     style={styles.input}
                     value={inputText}
                     onChangeText={setInputText}
                     placeholder="Type a message..."
+                    placeholderTextColor="#999"
                 />
-                <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+                <TouchableOpacity onPress={() => sendMessage(inputText)} style={styles.sendButton} disabled={!inputText.trim()}>
                     <Icon name="send" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -95,7 +229,7 @@ const styles = StyleSheet.create({
     headerInfo: { flex: 1, marginLeft: 15 },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
     typingIndicator: { fontSize: 12, color: '#007AFF', fontStyle: 'italic' },
-    list: { padding: 15 },
+    list: { padding: 15, paddingBottom: 20 },
     bubble: { maxWidth: '80%', padding: 10, borderRadius: 10, marginBottom: 10 },
     me: { alignSelf: 'flex-end', backgroundColor: '#007AFF' },
     them: { alignSelf: 'flex-start', backgroundColor: '#fff' },
@@ -108,7 +242,8 @@ const styles = StyleSheet.create({
     inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', alignItems: 'center' },
     attachButton: { padding: 10 },
     input: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginHorizontal: 10, color: '#000' },
-    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center' }
+    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center' },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
 
 export default ChatScreen;
