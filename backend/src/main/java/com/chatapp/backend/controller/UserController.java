@@ -21,8 +21,8 @@ public class UserController {
     private com.chatapp.backend.service.FileStorageService fileStorageService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam(required = false) String query,
-            @RequestParam String currentUserId) {
+    public ResponseEntity<List<User>> searchUsers(@RequestParam(value = "query", required = false) String query,
+            @RequestParam("currentUserId") String currentUserId) {
         List<User> users;
         if (query == null || query.trim().isEmpty()) {
             users = userRepository.findAll();

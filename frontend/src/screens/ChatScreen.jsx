@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import ChatService from '../services/ChatService';
 import { AuthContext } from '../navigation/AppNavigator';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from 'axios';
 
 const API_URL = 'http://10.0.2.2:8080';
@@ -16,9 +17,20 @@ const ChatScreen = ({ route, navigation }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [drawerType, setDrawerType] = useState('emoji'); // 'emoji' or 'sticker'
     const flatListRef = useRef(null);
 
     const currentUserId = user?.id || user?.userId;
+
+    const stickers = [
+        'https://cdn-icons-png.flaticon.com/512/4603/4603957.png', // Happy dog
+        'https://cdn-icons-png.flaticon.com/512/8207/8207758.png', // Heart
+        'https://cdn-icons-png.flaticon.com/512/5766/5766436.png', // Laughing
+        'https://cdn-icons-png.flaticon.com/512/5766/5766467.png', // Cool
+        'https://cdn-icons-png.flaticon.com/512/5766/5766324.png', // Surprised
+        'https://cdn-icons-png.flaticon.com/512/5766/5766336.png', // Crying
+    ];
 
     useEffect(() => {
         if (!currentUserId || !recipientId) {
@@ -146,6 +158,12 @@ const ChatScreen = ({ route, navigation }) => {
                         style={{ width: 200, height: 200, borderRadius: 10 }}
                         resizeMode="cover"
                     />
+                ) : item.type === 'STICKER' ? (
+                    <Image
+                        source={{ uri: item.content }}
+                        style={{ width: 120, height: 120 }}
+                        resizeMode="contain"
+                    />
                 ) : (
                     <Text style={[styles.msgText, isMe ? styles.meText : styles.themText]}>{item.content}</Text>
                 )}
@@ -205,6 +223,15 @@ const ChatScreen = ({ route, navigation }) => {
             )}
 
             <View style={styles.inputContainer}>
+                <TouchableOpacity
+                    style={styles.attachButton}
+                    onPress={() => {
+                        setShowDrawer(!showDrawer);
+                        // Optional: dismiss keyboard if opening drawer
+                    }}
+                >
+                    <Icon name={showDrawer ? "keyboard-outline" : "happy-outline"} size={24} color="#007AFF" />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.attachButton} onPress={handleImagePick} disabled={uploading}>
                     {uploading ? <ActivityIndicator size="small" color="#007AFF" /> : <Icon name="image" size={24} color="#007AFF" />}
                 </TouchableOpacity>
@@ -212,6 +239,7 @@ const ChatScreen = ({ route, navigation }) => {
                     style={styles.input}
                     value={inputText}
                     onChangeText={setInputText}
+                    onFocus={() => setShowDrawer(false)}
                     placeholder="Type a message..."
                     placeholderTextColor="#999"
                 />
@@ -219,6 +247,44 @@ const ChatScreen = ({ route, navigation }) => {
                     <Icon name="send" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
+
+            {showDrawer && (
+                <View style={styles.drawerContainer}>
+                    <View style={styles.drawerTabs}>
+                        <TouchableOpacity style={[styles.tab, drawerType === 'emoji' && styles.activeTab]} onPress={() => setDrawerType('emoji')}>
+                            <Text style={styles.tabText}>Emojis</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.tab, drawerType === 'sticker' && styles.activeTab]} onPress={() => setDrawerType('sticker')}>
+                            <Text style={styles.tabText}>Stickers</Text>
+                        </TouchableOpacity>
+                    </View>
+                    {drawerType === 'emoji' ? (
+                        <View style={{ height: 260 }}>
+                            <EmojiKeyboard
+                                onEmojiSelected={emojiObject => setInputText(prev => prev + emojiObject.emoji)}
+                                theme={{
+                                    backdrop: '#00000000',
+                                }}
+                            />
+                        </View>
+                    ) : (
+                        <View style={styles.stickerGrid}>
+                            {stickers.map((stickerUrl, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    onPress={() => {
+                                        sendMessage(stickerUrl, 'STICKER');
+                                        setShowDrawer(false);
+                                    }}
+                                    style={styles.stickerItem}
+                                >
+                                    <Image source={{ uri: stickerUrl }} style={styles.stickerImage} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
         </KeyboardAvoidingView>
     );
 };
@@ -241,9 +307,17 @@ const styles = StyleSheet.create({
     themTime: { color: '#999' },
     inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', alignItems: 'center' },
     attachButton: { padding: 10 },
-    input: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginHorizontal: 10, color: '#000' },
+    input: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginHorizontal: 5, color: '#000' },
     sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center' },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' }
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    drawerContainer: { height: 300, backgroundColor: '#f5f5f5', borderTopWidth: 1, borderTopColor: '#ddd' },
+    drawerTabs: { flexDirection: 'row', backgroundColor: '#eaeaea' },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    activeTab: { borderBottomColor: '#007AFF' },
+    tabText: { fontWeight: 'bold', color: '#555' },
+    stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 10, justifyContent: 'space-around' },
+    stickerItem: { margin: 10 },
+    stickerImage: { width: 70, height: 70 }
 });
 
 export default ChatScreen;
