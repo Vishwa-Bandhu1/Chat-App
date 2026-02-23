@@ -4,10 +4,10 @@ import 'fast-text-encoding';
 
 // The /websocket suffix is required when the Spring Boot endpoint uses .withSockJS()
 // Replace with your local machine's IP address if running on emulator/device
-const SOCKET_URL = 'ws://10.0.2.2:8080/ws/websocket';
+const SOCKET_URL = 'ws://192.168.1.6:8080/ws/websocket';
 
-// For Android Emulator, use 10.0.2.2. For physical device, use your PC's IP.
-const API_URL = 'http://10.0.2.2:8080';
+// For Android Emulator, use 192.168.1.6. For physical device, use your PC's IP.
+const API_URL = 'http://192.168.1.6:8080';
 
 class ChatService {
     constructor() {

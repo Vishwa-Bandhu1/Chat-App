@@ -28,3 +28,6 @@ ip_ascii.txt
 *.properties
 google-services.json
 serviceAccountKey.json
+
+# User Uploads
+backend/uploads/

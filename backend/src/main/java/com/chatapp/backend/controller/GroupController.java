@@ -35,13 +35,13 @@ public class GroupController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ChatGroup>> getUserGroups(@PathVariable String userId) {
+    public ResponseEntity<List<ChatGroup>> getUserGroups(@PathVariable("userId") String userId) {
         List<ChatGroup> groups = chatGroupRepository.findByMemberIdsContaining(userId);
         return ResponseEntity.ok(groups);
     }
 
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<Void> deleteGroup(@PathVariable String groupId) {
+    public ResponseEntity<Void> deleteGroup(@PathVariable("groupId") String groupId) {
         messageRepository.deleteByGroupId(groupId);
         chatGroupRepository.deleteById(groupId);
         return ResponseEntity.ok().build();

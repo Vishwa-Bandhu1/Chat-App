@@ -22,8 +22,8 @@ public class AgoraController {
 
     @GetMapping("/token")
     public ResponseEntity<Map<String, Object>> getToken(
-            @RequestParam String channelName,
-            @RequestParam(defaultValue = "0") int uid) {
+            @RequestParam("channelName") String channelName,
+            @RequestParam(name = "uid", defaultValue = "0") int uid) {
 
         System.out.println("Agora Token Request: Channel=" + channelName + ", UID=" + uid);
         System.out.println("App ID: " + appId); // Do not log certificate for security in prod, but ok for debug

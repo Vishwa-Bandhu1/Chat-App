@@ -5,7 +5,7 @@ import { AuthContext } from '../navigation/AppNavigator';
 import UserService from '../services/UserService';
 import axios from 'axios';
 
-const API_URL = 'http://10.0.2.2:8080/api/groups';
+const API_URL = 'http://192.168.1.6:8080/api/groups';
 
 const CreateGroupScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);

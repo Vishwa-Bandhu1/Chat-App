@@ -62,7 +62,8 @@ public class ChatController {
 
     @GetMapping("/messages/{senderId}/{recipientId}")
     @ResponseBody
-    public List<ChatMessage> findChatMessages(@PathVariable String senderId, @PathVariable String recipientId) {
+    public List<ChatMessage> findChatMessages(@PathVariable("senderId") String senderId,
+            @PathVariable("recipientId") String recipientId) {
         try {
             return messageRepository.findBySenderIdAndRecipientIdOrSenderIdAndRecipientIdOrderByTimestampAsc(
                     senderId, recipientId, recipientId, senderId);
@@ -73,20 +74,20 @@ public class ChatController {
 
     @GetMapping("/conversations/{userId}")
     @ResponseBody
-    public List<com.chatapp.backend.dto.ConversationDTO> getRecentConversations(@PathVariable String userId) {
+    public List<com.chatapp.backend.dto.ConversationDTO> getRecentConversations(@PathVariable("userId") String userId) {
         return chatService.getRecentConversations(userId);
     }
 
     @GetMapping("/messages/group/{groupId}")
     @ResponseBody
-    public List<ChatMessage> findGroupMessages(@PathVariable String groupId) {
+    public List<ChatMessage> findGroupMessages(@PathVariable("groupId") String groupId) {
         return messageRepository.findByGroupIdOrderByTimestampAsc(groupId);
     }
 
     // Delete a single message
     @DeleteMapping("/messages/{messageId}")
     @ResponseBody
-    public ResponseEntity<Void> deleteMessage(@PathVariable String messageId) {
+    public ResponseEntity<Void> deleteMessage(@PathVariable("messageId") String messageId) {
         messageRepository.deleteById(messageId);
         return ResponseEntity.ok().build();
     }
@@ -94,7 +95,8 @@ public class ChatController {
     // Delete entire conversation between two users
     @DeleteMapping("/conversations/{userId}/{recipientId}")
     @ResponseBody
-    public ResponseEntity<Void> deleteConversation(@PathVariable String userId, @PathVariable String recipientId) {
+    public ResponseEntity<Void> deleteConversation(@PathVariable("userId") String userId,
+            @PathVariable("recipientId") String recipientId) {
         messageRepository.deleteBySenderIdAndRecipientIdOrSenderIdAndRecipientId(
                 userId, recipientId, recipientId, userId);
         return ResponseEntity.ok().build();

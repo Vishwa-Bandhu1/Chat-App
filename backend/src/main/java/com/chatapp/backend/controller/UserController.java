@@ -39,7 +39,8 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<User> updateProfile(@PathVariable String userId, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<User> updateProfile(@PathVariable("userId") String userId,
+            @RequestBody Map<String, String> payload) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 

@@ -7,7 +7,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from 'axios';
 
-const API_URL = 'http://10.0.2.2:8080';
+const API_URL = 'http://192.168.1.6:8080';
 
 const ChatScreen = ({ route, navigation }) => {
     const { name, recipientId } = route.params || { name: 'Chat', recipientId: '' };
