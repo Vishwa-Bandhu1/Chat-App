@@ -70,4 +70,15 @@ public class UserController {
 
         return ResponseEntity.ok(user);
     }
+
+    @PostMapping("/sync-contacts")
+    public ResponseEntity<List<User>> syncContacts(@RequestBody List<String> phoneNumbers) {
+        if (phoneNumbers == null || phoneNumbers.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Find users matching any of the provided phone numbers
+        List<User> matchedUsers = userRepository.findByPhoneNumberIn(phoneNumbers);
+        return ResponseEntity.ok(matchedUsers);
+    }
 }

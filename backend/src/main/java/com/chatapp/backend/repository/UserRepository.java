@@ -24,4 +24,6 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     java.util.List<User> findByUsernameContainingIgnoreCaseOrFullNameContainingIgnoreCase(String username,
             String fullName);
+
+    java.util.List<User> findByPhoneNumberIn(java.util.List<String> phoneNumbers);
 }

@@ -52,6 +52,18 @@ const UserService = {
             console.error('Error updating profile:', error);
             throw error;
         }
+    },
+
+    syncContacts: async (phoneNumbers, token) => {
+        try {
+            const response = await axios.post(`${API_URL}/sync-contacts`, phoneNumbers, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error syncing contacts:', error);
+            throw error;
+        }
     }
 };
 
