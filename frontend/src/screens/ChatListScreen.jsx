@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from 'react';
+﻿import React, { useState, useContext, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,7 +6,7 @@ import { AuthContext } from '../navigation/AppNavigator';
 import ChatService from '../services/ChatService';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.6:8080';
+const API_URL = 'http://192.168.1.7:8080';
 
 const ChatListScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);

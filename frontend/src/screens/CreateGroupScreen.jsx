@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../navigation/AppNavigator';
 import UserService from '../services/UserService';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.6:8080/api/groups';
+const API_URL = 'http://192.168.1.7:8080/api/groups';
 
 const CreateGroupScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);

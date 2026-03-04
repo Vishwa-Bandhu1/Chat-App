@@ -31,3 +31,6 @@ serviceAccountKey.json
 
 # User Uploads
 backend/uploads/
+
+# Build Logs
+*stacktrace.txt

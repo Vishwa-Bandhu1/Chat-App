@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+﻿import React, { useState, useEffect, useContext, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ChatService from '../services/ChatService';
@@ -7,7 +7,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.6:8080';
+const API_URL = 'http://192.168.1.7:8080';
 
 const ChatScreen = ({ route, navigation }) => {
     const { name, recipientId } = route.params || { name: 'Chat', recipientId: '' };

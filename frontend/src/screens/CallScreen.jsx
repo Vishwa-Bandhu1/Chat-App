@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, StatusBar } from 'react-native';
@@ -159,8 +159,8 @@ const CallScreen = ({ route, navigation }) => {
             });
 
             // Fetch Token from Backend
-            // Use 192.168.1.6 for Android Emulator, localhost for iOS/Web
-            const API_URL = 'http://192.168.1.6:8080/api/agora';
+            // Use 192.168.1.7 for Android Emulator, localhost for iOS/Web
+            const API_URL = 'http://192.168.1.7:8080/api/agora';
             console.log('Fetching token for channel:', channelNameRef.current);
 
             const response = await axios.get(`${API_URL}/token`, {

@@ -1,8 +1,8 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 // Replace with your local machine's IP address if running on emulator/device
-// For Android Emulator, use 192.168.1.6. For physical device, use your PC's IP.
-const API_URL = 'http://192.168.1.6:8080/api/auth';
+// For Android Emulator, use 192.168.1.7. For physical device, use your PC's IP.
+const API_URL = 'http://192.168.1.7:8080/api/auth';
 
 import auth from '@react-native-firebase/auth';
 

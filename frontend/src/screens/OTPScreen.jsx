@@ -1,19 +1,35 @@
-
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../navigation/AppNavigator';
 import AuthService from '../services/AuthService';
 
 const OTPScreen = ({ route, navigation }) => {
-    const { phoneNumber, confirmation } = route.params;
+    // confirmation object passed from PhoneNumberScreen
+    const [confirmation, setConfirmation] = useState(route.params.confirmation);
+    const { phoneNumber } = route.params;
+
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resendTimer, setResendTimer] = useState(60);
+    const [resendLoading, setResendLoading] = useState(false);
+
     const { signIn } = useContext(AuthContext);
 
+    // Timer for resend button
+    useEffect(() => {
+        let timer;
+        if (resendTimer > 0) {
+            timer = setInterval(() => {
+                setResendTimer(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [resendTimer]);
+
     const handleVerify = async () => {
-        if (!otp || otp.length !== 6) {
-            Alert.alert('Invalid OTP', 'Please enter a 6-digit OTP.');
+        if (!otp || otp.length < 6) {
+            Alert.alert('Invalid OTP', 'Please enter the fully 6-digit verification code.');
             return;
         }
 
@@ -23,7 +39,7 @@ const OTPScreen = ({ route, navigation }) => {
             const result = await confirmation.confirm(otp);
             const idToken = await result.user.getIdToken();
 
-            // 2. Verify ID Token with Backend
+            // 2. Verify ID Token with our Spring Boot Backend
             const data = await AuthService.verifyIdToken(phoneNumber, idToken);
             setLoading(false);
 
@@ -41,7 +57,40 @@ const OTPScreen = ({ route, navigation }) => {
         } catch (error) {
             console.error("OTPScreen Error:", error);
             setLoading(false);
-            Alert.alert('Error', error.response?.data?.message || 'Invalid OTP or Verification Failed.');
+
+            let errorMessage = 'Invalid OTP or Verification Failed.';
+            if (error.code === 'auth/invalid-verification-code') {
+                errorMessage = 'The verification code you entered is incorrect.';
+            } else if (error.code === 'auth/code-expired') {
+                errorMessage = 'The SMS code has expired. Please request a new one.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
+            Alert.alert('Error', errorMessage);
+        }
+    };
+
+    const handleResend = async () => {
+        if (resendTimer > 0) return; // Prevent spamming
+
+        setResendLoading(true);
+        setOtp('');
+        try {
+            // Re-trigger the SMS request
+            const newConfirmation = await AuthService.signInWithPhoneNumber(phoneNumber);
+            setConfirmation(newConfirmation);
+            setResendTimer(60); // Reset timer
+            Alert.alert('Success', 'A new verification code has been sent.');
+        } catch (error) {
+            console.error('Error resending OTP:', error);
+            let errorMessage = 'Failed to resend OTP.';
+            if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many requests. Please try again later.';
+            }
+            Alert.alert('Error', errorMessage);
+        } finally {
+            setResendLoading(false);
         }
     };
 
@@ -66,7 +115,18 @@ const OTPScreen = ({ route, navigation }) => {
                     />
                 </View>
 
-                <Text style={styles.resendText}>Didn't receive code?</Text>
+                {resendLoading ? (
+                    <ActivityIndicator size="small" color="#007AFF" style={{ marginBottom: 30 }} />
+                ) : (
+                    <TouchableOpacity
+                        onPress={handleResend}
+                        disabled={resendTimer > 0}
+                    >
+                        <Text style={[styles.resendText, resendTimer > 0 && styles.resendTextDisabled]}>
+                            Didn't receive code? {resendTimer > 0 ? `Wait ${resendTimer}s` : 'Resend Code'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
 
                 {loading ? (
                     <ActivityIndicator size="large" color="#00A884" style={{ marginTop: 20 }} />
@@ -103,6 +163,7 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         marginBottom: 40,
+        lineHeight: 20,
     },
     inputContainer: {
         borderBottomWidth: 2,
@@ -112,7 +173,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     input: {
-        fontSize: 30,
+        fontSize: 24,
         letterSpacing: 8,
         textAlign: 'center',
         color: '#333',
@@ -120,18 +181,31 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     resendText: {
-        color: '#007AFF', // WhatsApp blue link color
+        color: '#007AFF',
         marginBottom: 30,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    resendTextDisabled: {
+        color: '#999',
     },
     button: {
         backgroundColor: '#00A884',
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 40,
-        borderRadius: 4,
+        borderRadius: 25,
+        width: '80%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
     },
     buttonText: {
         color: '#fff',
         fontWeight: 'bold',
+        fontSize: 16,
     },
 });
 
