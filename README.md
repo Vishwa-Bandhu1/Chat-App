@@ -1,16 +1,19 @@
 # Chat App - React Native + Spring Boot
 
-A real-time chat application built with **React Native** (Frontend) and **Java Spring Boot** (Backend), featuring WebSocket communication, MongoDB storage, and a modern UI with Dark Mode support.
+A premium real-time chat application built with **React Native** (Frontend) and **Java Spring Boot** (Backend), featuring WebSocket communication, MongoDB storage, and a modern, high-performance UI.
 
 ## 📱 Features
 
--   **User Authentication**: Login and Signup with JWT security.
--   **Real-time Messaging**: Instant chat using WebSocket (STOMP protocol).
--   **User Directory**: Search for users and view all registered users.
--   **Contacts Sync**: Automatically fetch and display device contacts.
--   **Dynamic Profile**: Editable user profiles with avatars.
--   **Dark Mode**: Toggle between Light and Dark themes.
--   **Offline Support**: Caches messages locally (AsyncStorage) for better UX.
+-   **User Authentication**: Secure Login and Signup using JWT and Spring Security.
+-   **Real-time Messaging**: Instant, low-latency chat using WebSocket (STOMP protocol).
+-   **Push Notifications**: Integrated with **Firebase Cloud Messaging (FCM)** for reliable background alerts.
+-   **Call Signaling**: Real-time voice and video call alerts using WebSocket signals.
+-   **Stickers & Emojis**: Rich expressive chat with integrated sticker packs and emoji keyboard (`rn-emoji-keyboard`).
+-   **Image Uploads**: Support for sending images in chat (integrated with backend storage).
+-   **User Directory**: Global search for registered users to start new conversations.
+-   **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
+-   **Modern UI**: Sleek dark-mode inspired design with smooth micro-animations.
+-   **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
 
 ## 🛠 Tech Stack
 
@@ -19,11 +22,14 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
 -   **React Navigation** (Stack & Bottom Tabs)
 -   **Axios** for REST APIs
 -   **SockJS & STOMP** for WebSockets
+-   **Firebase Messaging (FCM)** for notifications
+-   **rn-emoji-keyboard** for expressive messaging
 -   **AsyncStorage** for local data persistence
 
 ### Backend (Server)
 -   **Java Spring Boot 3**
 -   **Spring Security** (JWT Authentication)
+-   **Firebase Admin SDK** for FCM integration
 -   **Spring Data MongoDB**
 -   **WebSocket** (Message Broker)
 
@@ -38,14 +44,14 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
 -   Node.js & npm / Yarn
 -   Java JDK 17+
 -   Android Studio (for Emulator & SDK)
--   MongoDB Atlas Account (or local MongoDB)
+-   MongoDB Atlas Account
 
 ### 1. Backend Setup (Spring Boot)
 1.  Navigate to the `backend` directory:
     ```bash
     cd backend
     ```
-2.  Configure database credentials in `src/main/resources/application.yml`.
+2.  Configure database credentials and **Firebase `serviceAccountKey.json`** in `src/main/resources/application.yml`.
 3.  Run the application:
     ```bash
     ./mvnw spring-boot:run
@@ -61,12 +67,13 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
     ```bash
     npm install
     ```
-3.  **Configure API URL**: Open `src/services/AuthService.js` and update `API_URL` with your machine's IP address if running on a physical device.
-4.  Start Metro Bundler:
+3.  **FCM Setup**: Place your `google-services.json` in `frontend/android/app/`.
+4.  **Configure API URL**: Update `API_URL` in services to your local IP address.
+5.  Start Metro Bundler:
     ```bash
     npm start
     ```
-5.  Run on Android:
+6.  Run on Android:
     ```bash
     npm run android
     ```
@@ -74,8 +81,6 @@ A real-time chat application built with **React Native** (Frontend) and **Java S
 ---
 
 ## 📱 Running on Physical Device (APK)
-
-To run the app on your Android phone:
 
 1.  **Generate Debug APK**:
     ```bash
@@ -86,8 +91,6 @@ To run the app on your Android phone:
 
 2.  **Install & Configure**:
     -   Connect Phone & PC to the **same Wi-Fi**.
-    -   Install the APK on your phone.
-    -   Run `npm start` on your PC.
     -   Shake phone -> **Dev Settings** -> **Debug server host & port** -> Enter your PC IP.
     -   Reload the app.
 
