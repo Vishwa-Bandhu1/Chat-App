@@ -33,6 +33,7 @@ public class User implements UserDetails {
     private String status;
     private LocalDateTime lastSeen;
     private boolean online;
+    private String fcmToken;
 
     private Role role;
 

@@ -14,7 +14,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ChatListScreen from '../screens/ChatListScreen';
-import ContactListScreen from '../screens/ContactListScreen';
+// import ContactListScreen from '../screens/ContactListScreen';
+import UserSearchScreen from '../screens/UserSearchScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -34,17 +35,32 @@ function TabNavigator() {
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName;
                     if (route.name === 'Chats') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-                    else if (route.name === 'Contacts') iconName = focused ? 'people' : 'people-outline';
                     else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
                     else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
                     return <Icon name={iconName} size={size} color={color} />;
                 },
-                tabBarActiveTintColor: '#007AFF',
-                tabBarInactiveTintColor: 'gray',
+                tabBarActiveTintColor: '#6C63FF',
+                tabBarInactiveTintColor: '#5A5A6E',
+                tabBarStyle: {
+                    backgroundColor: '#0A0E21',
+                    borderTopColor: '#1C1F3A',
+                    height: 60,
+                    paddingBottom: 8,
+                },
+                headerStyle: {
+                    backgroundColor: '#0A0E21',
+                    borderBottomColor: '#1C1F3A',
+                    elevation: 0,
+                    shadowOpacity: 0,
+                },
+                headerTitleStyle: {
+                    color: '#FFFFFF',
+                    fontWeight: '800',
+                },
+                headerShown: false, // Screens handle their own headers for better design
             })}
         >
             <Tab.Screen name="Chats" component={ChatListScreen} />
-            <Tab.Screen name="Contacts" component={ContactListScreen} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
             <Tab.Screen name="Settings" component={SettingsScreen} />
         </Tab.Navigator>
@@ -78,7 +94,7 @@ export default function AppNavigator() {
         const subscription = AppState.addEventListener('change', nextAppState => {
             if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
                 ChatService.client?.activate();
-                fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+                fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -87,7 +103,7 @@ export default function AppNavigator() {
                 }).catch(e => console.log('Error setting online status', e));
             } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
                 ChatService.client?.deactivate();
-                fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+                fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -99,7 +115,7 @@ export default function AppNavigator() {
         });
 
         // Initialize connection
-        fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+        fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -177,6 +193,7 @@ export default function AppNavigator() {
                 {isAuthenticated ? (
                     <Stack.Navigator screenOptions={{ headerShown: false }}>
                         <Stack.Screen name="MainTabs" component={TabNavigator} />
+                        <Stack.Screen name="UserSearch" component={UserSearchScreen} />
                         <Stack.Screen name="Chat" component={ChatScreen} />
                         <Stack.Screen name="GroupChat" component={GroupChatScreen} />
                         <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />

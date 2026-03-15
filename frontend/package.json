@@ -20,6 +20,7 @@
     "axios": "^1.13.5",
     "fast-text-encoding": "^1.0.6",
     "libphonenumber-js": "^1.12.38",
+    "lodash": "^4.17.23",
     "react": "19.2.3",
     "react-native": "0.84.0",
     "react-native-agora": "^4.5.3",

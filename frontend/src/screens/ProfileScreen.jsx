@@ -1,19 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import CustomButton from '../components/CustomButton';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Image,
+    TouchableOpacity,
+    Alert,
+    ActivityIndicator,
+    StatusBar,
+    ScrollView
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import UserService from '../services/UserService';
 import { AuthContext } from '../navigation/AppNavigator';
 
 const ProfileScreen = () => {
-    const { user, signIn, signOut } = React.useContext(AuthContext); // signIn used to update user context
+    const { user, signIn, signOut } = React.useContext(AuthContext);
     const [uploading, setUploading] = useState(false);
 
     const onLogout = () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel' },
-            { text: 'Logout', onPress: signOut }
+        Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign Out', onPress: signOut, style: 'destructive' }
         ]);
     };
 
@@ -23,18 +33,13 @@ const ProfileScreen = () => {
             quality: 0.5,
         });
 
-        if (result.didCancel) return;
-        if (result.errorMessage) {
-            Alert.alert('Error', result.errorMessage);
-            return;
-        }
+        if (result.didCancel || !result.assets) return;
 
         const asset = result.assets[0];
         setUploading(true);
 
         try {
             const updatedUser = await UserService.uploadAvatar(user.id, asset.uri, user.accessToken);
-            // Update local user context with new avatar
             signIn({ ...user, avatar: updatedUser.avatar });
             Alert.alert('Success', 'Profile picture updated!');
         } catch (error) {
@@ -44,60 +49,205 @@ const ProfileScreen = () => {
         }
     };
 
+    const OptionItem = ({ icon, label, onPress, color = '#FFFFFF' }) => (
+        <TouchableOpacity style={styles.option} onPress={onPress}>
+            <View style={styles.optionIconContainer}>
+                <Icon name={icon} size={22} color={color} />
+            </View>
+            <Text style={[styles.optionLabel, { color }]}>{label}</Text>
+            <Icon name="chevron-forward" size={18} color="#2A2D4A" />
+        </TouchableOpacity>
+    );
+
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleAvatarUpload} disabled={uploading}>
-                    {uploading ? (
-                        <View style={[styles.avatar, styles.centered]}>
-                            <ActivityIndicator color="#007AFF" />
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" />
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Profile Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={handleAvatarUpload} disabled={uploading} style={styles.avatarContainer}>
+                        <View style={styles.avatarBorder}>
+                            {uploading ? (
+                                <View style={[styles.avatar, styles.centered]}>
+                                    <ActivityIndicator size="large" color="#6C63FF" />
+                                </View>
+                            ) : (
+                                <Image
+                                    source={{ uri: user?.avatar || 'https://via.placeholder.com/150' }}
+                                    style={styles.avatar}
+                                />
+                            )}
                         </View>
-                    ) : (
-                        <Image
-                            source={{ uri: user?.avatar || 'https://via.placeholder.com/100' }}
-                            style={styles.avatar}
-                        />
-                    )}
-                    <View style={styles.editIcon}>
-                        <Icon name="camera" size={20} color="#fff" />
+                        <View style={styles.cameraIconContainer}>
+                            <Icon name="camera" size={16} color="#FFFFFF" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <Text style={styles.fullName}>{user?.fullName || 'User'}</Text>
+                    <Text style={styles.username}>@{user?.username}</Text>
+                    
+                    <TouchableOpacity style={styles.editProfileBtn}>
+                        <Text style={styles.editProfileText}>Edit Profile</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Account Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Account</Text>
+                    <View style={styles.optionsCard}>
+                        <OptionItem icon="person-circle-outline" label="Account Details" />
+                        <OptionItem icon="notifications-outline" label="Notifications" />
+                        <OptionItem icon="shield-checkmark-outline" label="Privacy & Security" />
+                        <OptionItem icon="color-palette-outline" label="Appearance" />
                     </View>
-                </TouchableOpacity>
-                <Text style={styles.name}>{user?.fullName || 'User'}</Text>
-                <Text style={styles.status}>@{user?.username}</Text>
-            </View>
+                </View>
 
-            <View style={styles.section}>
-                <TouchableOpacity style={styles.option} onPress={handleAvatarUpload}>
-                    <Icon name="person-outline" size={24} color="#333" />
-                    <Text style={styles.optionText}>Change Profile Picture</Text>
-                    <Icon name="chevron-forward" size={24} color="#ccc" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.option}>
-                    <Icon name="notifications-outline" size={24} color="#333" />
-                    <Text style={styles.optionText}>Notifications</Text>
-                    <Icon name="chevron-forward" size={24} color="#ccc" />
-                </TouchableOpacity>
-            </View>
+                {/* Support Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Support</Text>
+                    <View style={styles.optionsCard}>
+                        <OptionItem icon="help-circle-outline" label="Help Center" />
+                        <OptionItem icon="information-circle-outline" label="About ChatApp" />
+                    </View>
+                </View>
 
-            <View style={styles.logoutContainer}>
-                <CustomButton title="Logout" onPress={onLogout} type="SECONDARY" />
-            </View>
-        </View>
+                {/* Logout Button */}
+                <View style={styles.logoutContainer}>
+                    <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+                        <Icon name="log-out-outline" size={20} color="#FF6B6B" style={{ marginRight: 8 }} />
+                        <Text style={styles.logoutText}>Sign Out</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    header: { alignItems: 'center', padding: 30, backgroundColor: '#fff', marginBottom: 20 },
-    avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 15, backgroundColor: '#ddd' },
-    editIcon: { position: 'absolute', right: 0, bottom: 15, backgroundColor: '#007AFF', padding: 8, borderRadius: 20 },
-    centered: { justifyContent: 'center', alignItems: 'center' },
-    name: { fontSize: 22, fontWeight: 'bold', color: '#333' },
-    status: { fontSize: 16, color: '#666' },
-    section: { backgroundColor: '#fff', paddingVertical: 10 },
-    option: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-    optionText: { flex: 1, marginLeft: 15, fontSize: 16, color: '#333' },
-    logoutContainer: { padding: 20, marginTop: 'auto' }
+    container: {
+        flex: 1,
+        backgroundColor: '#0A0E21',
+    },
+    header: {
+        alignItems: 'center',
+        paddingVertical: 40,
+        borderBottomWidth: 1,
+        borderBottomColor: '#1C1F3A',
+    },
+    avatarContainer: {
+        marginBottom: 20,
+        position: 'relative',
+    },
+    avatarBorder: {
+        padding: 4,
+        borderRadius: 60,
+        borderWidth: 2,
+        borderColor: '#6C63FF',
+    },
+    avatar: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        backgroundColor: '#1C1F3A',
+    },
+    cameraIconContainer: {
+        position: 'absolute',
+        bottom: 5,
+        right: 5,
+        backgroundColor: '#6C63FF',
+        padding: 8,
+        borderRadius: 15,
+        borderWidth: 3,
+        borderColor: '#0A0E21',
+    },
+    fullName: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    username: {
+        fontSize: 16,
+        color: '#8E8E93',
+        marginBottom: 20,
+    },
+    editProfileBtn: {
+        backgroundColor: '#1C1F3A',
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#2A2D4A',
+    },
+    editProfileText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    section: {
+        paddingHorizontal: 20,
+        paddingTop: 24,
+    },
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#5A5A6E',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 12,
+        marginLeft: 4,
+    },
+    optionsCard: {
+        backgroundColor: '#1C1F3A',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    option: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    optionIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    optionLabel: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    logoutContainer: {
+        padding: 20,
+        marginTop: 20,
+        marginBottom: 40,
+    },
+    logoutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+        paddingVertical: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 107, 107, 0.2)',
+    },
+    logoutText: {
+        color: '#FF6B6B',
+        fontSize: 17,
+        fontWeight: '700',
+    },
+    centered: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default ProfileScreen;

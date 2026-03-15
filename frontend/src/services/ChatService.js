@@ -1,13 +1,13 @@
-﻿import { Client } from '@stomp/stompjs';
+import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import 'fast-text-encoding';
 
 // The /websocket suffix is required when the Spring Boot endpoint uses .withSockJS()
 // Replace with your local machine's IP address if running on emulator/device
-const SOCKET_URL = 'ws://192.168.1.7:8080/ws/websocket';
+const SOCKET_URL = 'ws://192.168.1.5:8080/ws/websocket';
 
-// For Android Emulator, use 192.168.1.7. For physical device, use your PC's IP.
-const API_URL = 'http://192.168.1.7:8080';
+// For Android Emulator, use 192.168.1.5. For physical device, use your PC's IP.
+const API_URL = 'http://192.168.1.5:8080';
 
 class ChatService {
     constructor() {

@@ -81,4 +81,24 @@ public class UserController {
         List<User> matchedUsers = userRepository.findByPhoneNumberIn(phoneNumbers);
         return ResponseEntity.ok(matchedUsers);
     }
+
+    @PatchMapping("/{userId}/status")
+    public ResponseEntity<User> updateUserStatus(@PathVariable("userId") String userId,
+            @RequestBody Map<String, Object> payload) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (payload.containsKey("status")) {
+            user.setStatus((String) payload.get("status"));
+        }
+        if (payload.containsKey("online")) {
+            user.setOnline((Boolean) payload.get("online"));
+        }
+        if (payload.containsKey("fcmToken")) {
+            user.setFcmToken((String) payload.get("fcmToken"));
+        }
+
+        userRepository.save(user);
+        return ResponseEntity.ok(user);
+    }
 }

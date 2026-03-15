@@ -1,5 +1,19 @@
-﻿import React, { useState, useEffect, useContext, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TextInput,
+    TouchableOpacity,
+    KeyboardAvoidingView,
+    Platform,
+    ActivityIndicator,
+    Alert,
+    Image,
+    StatusBar,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ChatService from '../services/ChatService';
 import { AuthContext } from '../navigation/AppNavigator';
@@ -7,30 +21,29 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.7:8080';
+const API_URL = 'http://192.168.1.5:8080';
 
 const ChatScreen = ({ route, navigation }) => {
-    const { name, recipientId } = route.params || { name: 'Chat', recipientId: '' };
+    const { name, recipientId, avatar } = route.params || { name: 'Chat', recipientId: '', avatar: null };
     const { user } = useContext(AuthContext);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
     const [loading, setLoading] = useState(true);
     const [recipientStatus, setRecipientStatus] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
-    const [drawerType, setDrawerType] = useState('emoji'); // 'emoji' or 'sticker'
+    const [drawerType, setDrawerType] = useState('emoji');
     const flatListRef = useRef(null);
 
     const currentUserId = user?.id || user?.userId;
 
     const stickers = [
-        'https://cdn-icons-png.flaticon.com/512/4603/4603957.png', // Happy dog
-        'https://cdn-icons-png.flaticon.com/512/8207/8207758.png', // Heart
-        'https://cdn-icons-png.flaticon.com/512/5766/5766436.png', // Laughing
-        'https://cdn-icons-png.flaticon.com/512/5766/5766467.png', // Cool
-        'https://cdn-icons-png.flaticon.com/512/5766/5766324.png', // Surprised
-        'https://cdn-icons-png.flaticon.com/512/5766/5766336.png', // Crying
+        'https://cdn-icons-png.flaticon.com/512/4603/4603957.png',
+        'https://cdn-icons-png.flaticon.com/512/8207/8207758.png',
+        'https://cdn-icons-png.flaticon.com/512/5766/5766436.png',
+        'https://cdn-icons-png.flaticon.com/512/5766/5766467.png',
+        'https://cdn-icons-png.flaticon.com/512/5766/5766324.png',
+        'https://cdn-icons-png.flaticon.com/512/5766/5766336.png',
     ];
 
     useEffect(() => {
@@ -46,11 +59,9 @@ const ChatScreen = ({ route, navigation }) => {
                 });
                 if (res.data && res.data.length > 0) {
                     const foundUser = res.data.find(u => u.id === recipientId);
-                    if (foundUser) {
-                        setRecipientStatus(foundUser);
-                    }
+                    if (foundUser) setRecipientStatus(foundUser);
                 }
-            } catch (e) { console.log(e); }
+            } catch (e) { /* silent fail for status */ }
         };
 
         const fetchHistory = async () => {
@@ -58,7 +69,6 @@ const ChatScreen = ({ route, navigation }) => {
                 const data = await ChatService.fetchMessages(currentUserId, recipientId, user.accessToken);
                 setMessages(data || []);
                 setLoading(false);
-                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
             } catch (error) {
                 console.error('Error fetching messages:', error);
                 setLoading(false);
@@ -67,27 +77,18 @@ const ChatScreen = ({ route, navigation }) => {
 
         fetchHistory();
         fetchRecipientStatus();
-
-        // Poll status every 10 seconds
-        const statusInterval = setInterval(fetchRecipientStatus, 10000);
+        const statusInterval = setInterval(fetchRecipientStatus, 15000);
 
         ChatService.connect((msg) => {
-            console.log('Received message:', msg);
-            // Verify new messages are relevant
-            if (msg.senderId === recipientId || msg.receiverId === recipientId || msg.recipientId === recipientId) {
+            if (msg.senderId === recipientId || msg.receiverId === recipientId) {
                 setMessages(prev => {
-                    // Avoid duplicates from STOMP if sending back to sender
                     if (prev.find(m => (m.messageId || m.id) === (msg.messageId || msg.id))) return prev;
                     return [...prev, msg];
                 });
-                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
             }
         }, user.username);
 
-        return () => {
-            clearInterval(statusInterval);
-            // ChatService.disconnect(); 
-        };
+        return () => clearInterval(statusInterval);
     }, [currentUserId, recipientId]);
 
     const sendMessage = async (content, type = 'TEXT') => {
@@ -96,266 +97,252 @@ const ChatScreen = ({ route, navigation }) => {
 
         const chatMessage = {
             senderId: currentUserId,
-            receiverId: recipientId, // Required by new alias but fallback recipientId for DB
+            receiverId: recipientId,
             recipientId: recipientId,
-            message: content, // Required by new schema
+            message: content,
             content: content,
             type: type,
-            status: 'DELIVERED',
+            status: 'SENT',
             timestamp: new Date().toISOString()
         };
 
         const tempId = Date.now().toString();
-        // Optimistic UI update
         const tempMsg = { ...chatMessage, messageId: tempId, id: tempId };
         setMessages(prev => [...prev, tempMsg]);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
         if (type === 'TEXT') setInputText('');
 
         try {
             await ChatService.sendMessage(chatMessage);
         } catch (error) {
-            console.error("Failed to send message", error);
             Alert.alert("Error", "Failed to send message");
-            setMessages(prev => prev.filter(m => m.id !== tempId && m.messageId !== tempId));
+            setMessages(prev => prev.filter(m => m.id !== tempId));
         }
     };
 
     const handleImagePick = async () => {
-        const result = await launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.5,
-        });
+        const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.5 });
+        if (result.didCancel || !result.assets) return;
 
-        if (result.didCancel) return;
-        if (result.errorMessage) {
-            Alert.alert('Error', result.errorMessage);
-            return;
-        }
-
-        const asset = result.assets[0];
         setUploading(true);
-
         try {
-            const fileUrl = await ChatService.uploadImage(asset.uri, user.accessToken);
+            const fileUrl = await ChatService.uploadImage(result.assets[0].uri, user.accessToken);
             sendMessage(fileUrl, 'IMAGE');
         } catch (error) {
-            Alert.alert('Error', 'Failed to upload image.');
+            Alert.alert('Error', 'Upload failed.');
         } finally {
             setUploading(false);
         }
     };
 
-    const handleDeleteMessage = (item) => {
-        Alert.alert(
-            'Delete Message',
-            'Delete this message?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete', style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const messageId = item.messageId || item.id;
-                            if (messageId && !messageId.startsWith('temp_')) {
-                                await axios.delete(`${API_URL}/messages/${messageId}`, {
-                                    headers: { Authorization: `Bearer ${user.accessToken}` }
-                                });
-                            }
-                            setMessages(prev => prev.filter(m => (m.messageId || m.id) !== messageId));
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to delete message');
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const renderItem = ({ item }) => {
+    const renderItem = ({ item, index }) => {
         const isMe = item.senderId === currentUserId;
-        const msgContent = item.message || item.content; // Fallback mapping
+        const msgContent = item.message || item.content;
+        
+        // Logic for "consecutive messages" grouping feel
+        const nextMsg = messages[index + 1];
+        const prevMsg = messages[index - 1];
+        const isLastInGroup = !nextMsg || nextMsg.senderId !== item.senderId;
+        const isFirstInGroup = !prevMsg || prevMsg.senderId !== item.senderId;
 
         return (
-            <TouchableOpacity
-                activeOpacity={0.7}
-                onLongPress={() => handleDeleteMessage(item)}
-                style={[styles.bubble, isMe ? styles.me : styles.them]}
-            >
-                {item.type === 'IMAGE' ? (
-                    <Image
-                        source={{ uri: msgContent }}
-                        style={{ width: 200, height: 200, borderRadius: 10 }}
-                        resizeMode="cover"
-                    />
-                ) : item.type === 'STICKER' ? (
-                    <Image
-                        source={{ uri: msgContent }}
-                        style={{ width: 120, height: 120 }}
-                        resizeMode="contain"
-                    />
-                ) : (
-                    <Text style={[styles.msgText, isMe ? styles.meText : styles.themText]}>{msgContent}</Text>
-                )}
-                <Text style={[styles.timeText, isMe ? styles.meTime : styles.themTime]}>
-                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-            </TouchableOpacity>
+            <View style={[
+                styles.messageRow,
+                isMe ? styles.myRow : styles.theirRow,
+                isLastInGroup && { marginBottom: 12 }
+            ]}>
+                <View style={[
+                    styles.bubble,
+                    isMe ? styles.myBubble : styles.theirBubble,
+                    isMe 
+                        ? (isFirstInGroup ? styles.myTop : (isLastInGroup ? styles.myBottom : styles.myMiddle))
+                        : (isFirstInGroup ? styles.theirTop : (isLastInGroup ? styles.theirBottom : styles.theirMiddle))
+                ]}>
+                    {item.type === 'IMAGE' ? (
+                        <Image source={{ uri: msgContent }} style={styles.imageMsg} resizeMode="cover" />
+                    ) : item.type === 'STICKER' ? (
+                        <Image source={{ uri: msgContent }} style={styles.stickerMsg} resizeMode="contain" />
+                    ) : (
+                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>{msgContent}</Text>
+                    )}
+                    
+                    {isLastInGroup && (
+                        <Text style={[styles.timeText, isMe ? styles.myTime : styles.theirTime]}>
+                            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                    )}
+                </View>
+            </View>
         );
     };
 
     return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+            <StatusBar barStyle="light-content" />
+            
+            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Icon name="arrow-back" size={24} color="#333" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Icon name="chevron-back" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <Text style={styles.headerTitle}>{name}</Text>
-                    {recipientStatus && (
+                
+                <TouchableOpacity style={styles.userInfo} activeOpacity={0.8}>
+                    <View style={styles.headerAvatarContainer}>
+                        {avatar ? (
+                            <Image source={{ uri: avatar }} style={styles.headerAvatar} />
+                        ) : (
+                            <View style={styles.headerPlaceholder}>
+                                <Icon name="person" size={20} color="#8E8E93" />
+                            </View>
+                        )}
+                        {recipientStatus?.online && <View style={styles.headerOnlineBadge} />}
+                    </View>
+                    <View>
+                        <Text style={styles.userName}>{name}</Text>
                         <Text style={styles.statusText}>
-                            {recipientStatus.online ? 'Online' :
-                                recipientStatus.lastSeen ? `Last seen at ${new Date(recipientStatus.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                            {recipientStatus?.online ? 'Active now' : 'Offline'}
                         </Text>
-                    )}
-                    {uploading && <Text style={styles.typingIndicator}>Uploading image...</Text>}
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.headerIcons}>
+                    <TouchableOpacity style={styles.hIcon} onPress={() => navigation.navigate('Call', { recipientId, recipientName: name, isVideo: false })}>
+                        <Icon name="call-outline" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.hIcon} onPress={() => navigation.navigate('Call', { recipientId, recipientName: name, isVideo: true })}>
+                        <Icon name="videocam-outline" size={26} color="#FFFFFF" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={{ marginRight: 15 }}
-                    onPress={() => navigation.navigate('Call', {
-                        recipientId,
-                        recipientName: name,
-                        isVideo: false,
-                        isIncoming: false,
-                    })}
-                >
-                    <Icon name="call-outline" size={22} color="#007AFF" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('Call', {
-                        recipientId,
-                        recipientName: name,
-                        isVideo: true,
-                        isIncoming: false,
-                    })}
-                >
-                    <Icon name="videocam-outline" size={24} color="#007AFF" />
-                </TouchableOpacity>
             </View>
 
             {loading ? (
-                <View style={styles.centered}>
-                    <ActivityIndicator size="large" color="#007AFF" />
+                <View style={[styles.container, styles.centered]}>
+                    <ActivityIndicator size="large" color="#6C63FF" />
                 </View>
             ) : (
                 <FlatList
                     ref={flatListRef}
                     data={messages}
                     renderItem={renderItem}
-                    keyExtractor={item => item.messageId || item.id || Math.random().toString()}
-                    contentContainerStyle={styles.list}
+                    keyExtractor={item => (item.messageId || item.id || Date.now() + Math.random()).toString()}
+                    contentContainerStyle={styles.listPadding}
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                 />
             )}
 
-            <View style={styles.inputContainer}>
-                <TouchableOpacity
-                    style={styles.attachButton}
-                    onPress={() => {
-                        setShowDrawer(!showDrawer);
-                        // Optional: dismiss keyboard if opening drawer
-                    }}
-                >
-                    <Icon name={showDrawer ? "keyboard-outline" : "happy-outline"} size={24} color="#007AFF" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.attachButton} onPress={handleImagePick} disabled={uploading}>
-                    {uploading ? <ActivityIndicator size="small" color="#007AFF" /> : <Icon name="image" size={24} color="#007AFF" />}
-                </TouchableOpacity>
-                <TextInput
-                    style={styles.input}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    onFocus={() => setShowDrawer(false)}
-                    placeholder="Type a message..."
-                    placeholderTextColor="#999"
-                />
-                <TouchableOpacity onPress={() => sendMessage(inputText)} style={styles.sendButton} disabled={!inputText.trim()}>
-                    <Icon name="send" size={20} color="#fff" />
-                </TouchableOpacity>
-            </View>
-
-            {showDrawer && (
-                <View style={styles.drawerContainer}>
-                    <View style={styles.drawerTabs}>
-                        <TouchableOpacity style={[styles.tab, drawerType === 'emoji' && styles.activeTab]} onPress={() => setDrawerType('emoji')}>
-                            <Text style={styles.tabText}>Emojis</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.tab, drawerType === 'sticker' && styles.activeTab]} onPress={() => setDrawerType('sticker')}>
-                            <Text style={styles.tabText}>Stickers</Text>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : null} keyboardVerticalOffset={0}>
+                <View style={styles.inputWrapper}>
+                    <TouchableOpacity style={styles.inputAction} onPress={() => setShowDrawer(!showDrawer)}>
+                        <Icon name={showDrawer ? "keypad" : "happy-outline"} size={26} color="#6C63FF" />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.textInputContainer}>
+                        <TextInput
+                            style={styles.textInput}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            placeholder="Message..."
+                            placeholderTextColor="#5A5A6E"
+                            multiline
+                            onFocus={() => setShowDrawer(false)}
+                        />
+                        <TouchableOpacity style={styles.imageAction} onPress={handleImagePick}>
+                            <Icon name="image-outline" size={24} color="#8E8E93" />
                         </TouchableOpacity>
                     </View>
-                    {drawerType === 'emoji' ? (
-                        <View style={{ height: 260 }}>
-                            <EmojiKeyboard
-                                onEmojiSelected={emojiObject => setInputText(prev => prev + emojiObject.emoji)}
-                                theme={{
-                                    backdrop: '#00000000',
-                                }}
-                            />
-                        </View>
+
+                    {inputText.trim().length > 0 ? (
+                        <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage(inputText)}>
+                            <Text style={styles.sendBtnText}>Send</Text>
+                        </TouchableOpacity>
                     ) : (
-                        <View style={styles.stickerGrid}>
-                            {stickers.map((stickerUrl, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    onPress={() => {
-                                        sendMessage(stickerUrl, 'STICKER');
-                                        setShowDrawer(false);
-                                    }}
-                                    style={styles.stickerItem}
-                                >
-                                    <Image source={{ uri: stickerUrl }} style={styles.stickerImage} />
-                                </TouchableOpacity>
-                            ))}
+                        <View style={styles.micAction}>
+                            <Icon name="mic-outline" size={26} color="#FFFFFF" />
                         </View>
                     )}
                 </View>
-            )}
-        </KeyboardAvoidingView>
+
+                {showDrawer && (
+                    <View style={styles.drawer}>
+                        <View style={styles.drawerHeader}>
+                            <TouchableOpacity onPress={() => setDrawerType('emoji')} style={[styles.dTab, drawerType === 'emoji' && styles.dActive]}>
+                                <Text style={[styles.dText, drawerType === 'emoji' && styles.dActiveText]}>Emojis</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setDrawerType('sticker')} style={[styles.dTab, drawerType === 'sticker' && styles.dActive]}>
+                                <Text style={[styles.dText, drawerType === 'sticker' && styles.dActiveText]}>Stickers</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {drawerType === 'emoji' ? (
+                            <View style={{ height: 250 }}>
+                                <EmojiKeyboard onEmojiSelected={e => setInputText(p => p + e.emoji)} theme={{ backdrop: '#00000000' }} />
+                            </View>
+                        ) : (
+                            <View style={styles.stickerGrid}>
+                                {stickers.map((s, i) => (
+                                    <TouchableOpacity key={i} onPress={() => { sendMessage(s, 'STICKER'); setShowDrawer(false); }}>
+                                        <Image source={{ uri: s }} style={styles.stIcon} />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                )}
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', elevation: 2 },
-    headerInfo: { flex: 1, marginLeft: 15 },
-    headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    statusText: { fontSize: 12, color: '#666', marginTop: 2 },
-    typingIndicator: { fontSize: 12, color: '#007AFF', fontStyle: 'italic' },
-    list: { padding: 15, paddingBottom: 20 },
-    bubble: { maxWidth: '80%', padding: 10, borderRadius: 10, marginBottom: 10 },
-    me: { alignSelf: 'flex-end', backgroundColor: '#007AFF' },
-    them: { alignSelf: 'flex-start', backgroundColor: '#fff' },
-    msgText: { fontSize: 16 },
-    meText: { color: '#fff' },
-    themText: { color: '#333' },
-    timeText: { fontSize: 10, marginTop: 5, alignSelf: 'flex-end' },
-    meTime: { color: 'rgba(255,255,255,0.7)' },
-    themTime: { color: '#999' },
-    inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', alignItems: 'center' },
-    attachButton: { padding: 10 },
-    input: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginHorizontal: 5, color: '#000' },
-    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center' },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    drawerContainer: { height: 300, backgroundColor: '#f5f5f5', borderTopWidth: 1, borderTopColor: '#ddd' },
-    drawerTabs: { flexDirection: 'row', backgroundColor: '#eaeaea' },
-    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    activeTab: { borderBottomColor: '#007AFF' },
-    tabText: { fontWeight: 'bold', color: '#555' },
-    stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 10, justifyContent: 'space-around' },
-    stickerItem: { margin: 10 },
-    stickerImage: { width: 70, height: 70 }
+    container: { flex: 1, backgroundColor: '#0A0E21' },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1C1F3A' },
+    backBtn: { marginRight: 8, padding: 4 },
+    userInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    headerAvatarContainer: { position: 'relative', marginRight: 12 },
+    headerAvatar: { width: 40, height: 40, borderRadius: 20 },
+    headerPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1C1F3A', justifyContent: 'center', alignItems: 'center' },
+    headerOnlineBadge: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#4CAF50', borderWidth: 2, borderColor: '#0A0E21' },
+    userName: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+    statusText: { color: '#8E8E93', fontSize: 12 },
+    headerIcons: { flexDirection: 'row', alignItems: 'center' },
+    hIcon: { marginLeft: 18, padding: 4 },
+    listPadding: { paddingHorizontal: 16, paddingVertical: 20 },
+    messageRow: { flexDirection: 'row', width: '100%', marginBottom: 2 },
+    myRow: { justifyContent: 'flex-end' },
+    theirRow: { justifyContent: 'flex-start' },
+    bubble: { maxWidth: '75%', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20 },
+    myBubble: { backgroundColor: '#6C63FF' },
+    theirBubble: { backgroundColor: '#1C1F3A' },
+    myTop: { borderTopRightRadius: 4 },
+    myMiddle: { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+    myBottom: { borderBottomRightRadius: 4 },
+    theirTop: { borderTopLeftRadius: 4 },
+    theirMiddle: { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+    theirBottom: { borderBottomLeftRadius: 4 },
+    msgText: { fontSize: 15, lineHeight: 21 },
+    myText: { color: '#FFFFFF' },
+    theirText: { color: '#FFFFFF' },
+    timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end', opacity: 0.6 },
+    myTime: { color: '#FFFFFF' },
+    theirTime: { color: '#8E8E93' },
+    imageMsg: { width: 220, height: 220, borderRadius: 14 },
+    stickerMsg: { width: 100, height: 100 },
+    inputWrapper: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#1C1F3A' },
+    inputAction: { padding: 10 },
+    textInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1C1F3A', borderRadius: 24, paddingHorizontal: 14, minHeight: 44, maxHeight: 120 },
+    textInput: { flex: 1, color: '#FFFFFF', fontSize: 16, paddingVertical: 8, marginRight: 8 },
+    imageAction: { padding: 4 },
+    sendBtn: { paddingHorizontal: 16, paddingVertical: 10 },
+    sendBtnText: { color: '#6C63FF', fontSize: 16, fontWeight: '700' },
+    micAction: { padding: 10 },
+    drawer: { backgroundColor: '#1C1F3A', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 20 },
+    drawerHeader: { flexDirection: 'row', marginBottom: 10 },
+    dTab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    dActive: { borderBottomColor: '#6C63FF' },
+    dText: { color: '#8E8E93', fontSize: 14, fontWeight: '600' },
+    dActiveText: { color: '#FFFFFF' },
+    stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', padding: 20 },
+    stIcon: { width: 60, height: 60, margin: 10 },
+    centered: { justifyContent: 'center', alignItems: 'center' }
 });
 
 export default ChatScreen;

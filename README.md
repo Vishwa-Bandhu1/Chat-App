@@ -10,7 +10,7 @@ A premium real-time chat application built with **React Native** (Frontend) and 
 -   **Call Signaling**: Real-time voice and video call alerts using WebSocket signals.
 -   **Stickers & Emojis**: Rich expressive chat with integrated sticker packs and emoji keyboard (`rn-emoji-keyboard`).
 -   **Image Uploads**: Support for sending images in chat (integrated with backend storage).
--   **User Directory**: Global search for registered users to start new conversations.
+-   **User Directory**: Global search for registered users to start new conversations (User Search Screen).
 -   **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
 -   **Modern UI**: Sleek dark-mode inspired design with smooth micro-animations.
 -   **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
