@@ -1,14 +1,17 @@
 
-import React, { useRef, useEffect } from 'react';
-import { Alert } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { Alert, AppState } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import PhoneNumberScreen from '../screens/PhoneNumberScreen';
-import OTPScreen from '../screens/OTPScreen';
-import WelcomeScreen from '../screens/WelcomeScreen';
+// TEMPORARILY DISABLED — OTP Auth Screens
+// import PhoneNumberScreen from '../screens/PhoneNumberScreen';
+// import OTPScreen from '../screens/OTPScreen';
+// import WelcomeScreen from '../screens/WelcomeScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ContactListScreen from '../screens/ContactListScreen';
@@ -51,8 +54,9 @@ function TabNavigator() {
 export const AuthContext = React.createContext();
 
 export default function AppNavigator() {
-    const [user, setUser] = React.useState(null);
+    const [user, setUser] = useState(null);
     const callHandledRef = useRef(false);
+    const appState = useRef(AppState.currentState);
 
     const authContext = React.useMemo(() => ({
         signIn: (userData) => {
@@ -69,6 +73,39 @@ export default function AppNavigator() {
         if (!user) return;
 
         const userId = user.id || user.userId;
+
+        // Listen for AppState changes to emit Online/Offline presence
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+                ChatService.client?.activate();
+                fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ online: true, status: 'ONLINE' })
+                }).catch(e => console.log('Error setting online status', e));
+            } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+                ChatService.client?.deactivate();
+                fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ online: false, status: 'OFFLINE' })
+                }).catch(e => console.log('Error setting offline status', e));
+            }
+            appState.current = nextAppState;
+        });
+
+        // Initialize connection
+        fetch(`http://192.168.1.7:8080/api/users/${userId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ online: true, status: 'ONLINE' })
+        }).catch(e => console.log('Error init online status', e));
 
         // Connect STOMP with call signal handler
         const handleCallSignal = (signal) => {
@@ -127,6 +164,9 @@ export default function AppNavigator() {
             handleCallSignal
         );
 
+        return () => {
+            subscription.remove();
+        };
     }, [user]);
 
     const isAuthenticated = !!user;
@@ -144,9 +184,8 @@ export default function AppNavigator() {
                     </Stack.Navigator>
                 ) : (
                     <Stack.Navigator screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-                        <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
-                        <Stack.Screen name="OTP" component={OTPScreen} />
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="Register" component={RegisterScreen} />
                         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
                     </Stack.Navigator>
                 )}

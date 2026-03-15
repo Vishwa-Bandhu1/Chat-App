@@ -1,10 +1,11 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 
 // Replace with your local machine's IP address if running on emulator/device
 // For Android Emulator, use 192.168.1.7. For physical device, use your PC's IP.
 const API_URL = 'http://192.168.1.7:8080/api/auth';
 
-import auth from '@react-native-firebase/auth';
+// TEMPORARILY DISABLED — OTP Phone Auth
+// import auth from '@react-native-firebase/auth';
 
 const AuthService = {
     login: async (usernameOrEmail, password) => {
@@ -30,28 +31,29 @@ const AuthService = {
         }
     },
 
-    // 1. Send OTP (Firebase)
-    signInWithPhoneNumber: async (phoneNumber) => {
-        try {
-            const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
-            return confirmation;
-        } catch (error) {
-            console.error('AuthService signInWithPhoneNumber error:', error);
-            throw error;
-        }
-    },
-
-    // 2. Verify OTP (Firebase handles this via confirmation object in UI)
-    // But we need to verify the ID Token on backend
-    verifyIdToken: async (phoneNumber, idToken) => {
-        try {
-            const response = await axios.post(`${API_URL}/verify-otp`, { phoneNumber, idToken });
-            return response.data;
-        } catch (error) {
-            console.error('AuthService verifyIdToken error:', error);
-            throw handleAxiosError(error);
-        }
-    }
+    // ==========================================================================
+    // TEMPORARILY DISABLED — OTP Phone Auth Methods
+    // ==========================================================================
+    // signInWithPhoneNumber: async (phoneNumber) => {
+    //     try {
+    //         const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+    //         return confirmation;
+    //     } catch (error) {
+    //         console.error('AuthService signInWithPhoneNumber error:', error);
+    //         throw error;
+    //     }
+    // },
+    //
+    // verifyIdToken: async (phoneNumber, idToken) => {
+    //     try {
+    //         const response = await axios.post(`${API_URL}/verify-otp`, { phoneNumber, idToken });
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error('AuthService verifyIdToken error:', error);
+    //         throw handleAxiosError(error);
+    //     }
+    // }
+    // ==========================================================================
 };
 
 const handleAxiosError = (error) => {

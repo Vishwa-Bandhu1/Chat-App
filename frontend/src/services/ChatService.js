@@ -101,8 +101,8 @@ class ChatService {
                 this.connected = true;
                 console.log('Connected to STOMP');
 
-                // Subscribe to user-specific message queue
-                this.client.subscribe(`/user/${username}/queue/messages`, (message) => {
+                // Subscribe to user-specific message topic
+                this.client.subscribe(`/topic/messages/${username}`, (message) => {
                     const msg = JSON.parse(message.body);
                     onMessageReceived(msg);
                 });
@@ -115,13 +115,10 @@ class ChatService {
                     }
                 });
 
-                // Flush any pending messages
+                // Flush any pending messages via REST
                 while (this.pendingMessages.length > 0) {
                     const msg = this.pendingMessages.shift();
-                    this.client.publish({
-                        destination: '/app/chat',
-                        body: JSON.stringify(msg),
-                    });
+                    this.sendMessage(msg);
                     console.log('Sent queued message');
                 }
             },
@@ -145,15 +142,17 @@ class ChatService {
         this.client.activate();
     }
 
-    sendMessage(chatMessage) {
-        if (this.client && this.connected) {
-            this.client.publish({
-                destination: '/app/chat',
-                body: JSON.stringify(chatMessage),
-            });
-        } else {
-            console.warn('STOMP not connected yet, queuing message...');
-            this.pendingMessages.push(chatMessage);
+    async sendMessage(chatMessage) {
+        try {
+            await axios.post(`${API_URL}/api/messages`, chatMessage);
+            return true;
+        } catch (error) {
+            console.error('REST Message Send Error:', error);
+            if (!this.connected) {
+                console.warn('Network offline, queuing message...');
+                this.pendingMessages.push(chatMessage);
+            }
+            throw error;
         }
     }
 

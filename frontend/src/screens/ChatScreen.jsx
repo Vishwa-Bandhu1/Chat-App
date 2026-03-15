@@ -16,6 +16,7 @@ const ChatScreen = ({ route, navigation }) => {
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [recipientStatus, setRecipientStatus] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [drawerType, setDrawerType] = useState('emoji'); // 'emoji' or 'sticker'
@@ -38,6 +39,20 @@ const ChatScreen = ({ route, navigation }) => {
             return;
         }
 
+        const fetchRecipientStatus = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/users/search?query=${name}&currentUserId=${currentUserId}`, {
+                    headers: { Authorization: `Bearer ${user.accessToken}` }
+                });
+                if (res.data && res.data.length > 0) {
+                    const foundUser = res.data.find(u => u.id === recipientId);
+                    if (foundUser) {
+                        setRecipientStatus(foundUser);
+                    }
+                }
+            } catch (e) { console.log(e); }
+        };
+
         const fetchHistory = async () => {
             try {
                 const data = await ChatService.fetchMessages(currentUserId, recipientId, user.accessToken);
@@ -51,16 +66,26 @@ const ChatScreen = ({ route, navigation }) => {
         };
 
         fetchHistory();
+        fetchRecipientStatus();
+
+        // Poll status every 10 seconds
+        const statusInterval = setInterval(fetchRecipientStatus, 10000);
 
         ChatService.connect((msg) => {
             console.log('Received message:', msg);
-            if (msg.senderId === recipientId || msg.recipientId === recipientId) {
-                setMessages(prev => [...prev, msg]);
+            // Verify new messages are relevant
+            if (msg.senderId === recipientId || msg.receiverId === recipientId || msg.recipientId === recipientId) {
+                setMessages(prev => {
+                    // Avoid duplicates from STOMP if sending back to sender
+                    if (prev.find(m => (m.messageId || m.id) === (msg.messageId || msg.id))) return prev;
+                    return [...prev, msg];
+                });
                 setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
             }
-        }, user.username); // Use username for subscription
+        }, user.username);
 
         return () => {
+            clearInterval(statusInterval);
             // ChatService.disconnect(); 
         };
     }, [currentUserId, recipientId]);
@@ -71,26 +96,29 @@ const ChatScreen = ({ route, navigation }) => {
 
         const chatMessage = {
             senderId: currentUserId,
+            receiverId: recipientId, // Required by new alias but fallback recipientId for DB
             recipientId: recipientId,
+            message: content, // Required by new schema
             content: content,
             type: type,
             status: 'DELIVERED',
             timestamp: new Date().toISOString()
         };
 
-        // Optimistic UI update
         const tempId = Date.now().toString();
-        setMessages(prev => [...prev, { ...chatMessage, id: tempId }]);
+        // Optimistic UI update
+        const tempMsg = { ...chatMessage, messageId: tempId, id: tempId };
+        setMessages(prev => [...prev, tempMsg]);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
         if (type === 'TEXT') setInputText('');
 
         try {
-            ChatService.sendMessage(chatMessage);
+            await ChatService.sendMessage(chatMessage);
         } catch (error) {
             console.error("Failed to send message", error);
             Alert.alert("Error", "Failed to send message");
-            // Optionally remove message from UI on failure
+            setMessages(prev => prev.filter(m => m.id !== tempId && m.messageId !== tempId));
         }
     };
 
@@ -129,12 +157,13 @@ const ChatScreen = ({ route, navigation }) => {
                     text: 'Delete', style: 'destructive',
                     onPress: async () => {
                         try {
-                            if (item.id && !item.id.startsWith('temp_')) {
-                                await axios.delete(`${API_URL}/messages/${item.id}`, {
+                            const messageId = item.messageId || item.id;
+                            if (messageId && !messageId.startsWith('temp_')) {
+                                await axios.delete(`${API_URL}/messages/${messageId}`, {
                                     headers: { Authorization: `Bearer ${user.accessToken}` }
                                 });
                             }
-                            setMessages(prev => prev.filter(m => m.id !== item.id));
+                            setMessages(prev => prev.filter(m => (m.messageId || m.id) !== messageId));
                         } catch (error) {
                             Alert.alert('Error', 'Failed to delete message');
                         }
@@ -146,6 +175,8 @@ const ChatScreen = ({ route, navigation }) => {
 
     const renderItem = ({ item }) => {
         const isMe = item.senderId === currentUserId;
+        const msgContent = item.message || item.content; // Fallback mapping
+
         return (
             <TouchableOpacity
                 activeOpacity={0.7}
@@ -154,18 +185,18 @@ const ChatScreen = ({ route, navigation }) => {
             >
                 {item.type === 'IMAGE' ? (
                     <Image
-                        source={{ uri: item.content }}
+                        source={{ uri: msgContent }}
                         style={{ width: 200, height: 200, borderRadius: 10 }}
                         resizeMode="cover"
                     />
                 ) : item.type === 'STICKER' ? (
                     <Image
-                        source={{ uri: item.content }}
+                        source={{ uri: msgContent }}
                         style={{ width: 120, height: 120 }}
                         resizeMode="contain"
                     />
                 ) : (
-                    <Text style={[styles.msgText, isMe ? styles.meText : styles.themText]}>{item.content}</Text>
+                    <Text style={[styles.msgText, isMe ? styles.meText : styles.themText]}>{msgContent}</Text>
                 )}
                 <Text style={[styles.timeText, isMe ? styles.meTime : styles.themTime]}>
                     {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -182,6 +213,12 @@ const ChatScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <Text style={styles.headerTitle}>{name}</Text>
+                    {recipientStatus && (
+                        <Text style={styles.statusText}>
+                            {recipientStatus.online ? 'Online' :
+                                recipientStatus.lastSeen ? `Last seen at ${new Date(recipientStatus.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                        </Text>
+                    )}
                     {uploading && <Text style={styles.typingIndicator}>Uploading image...</Text>}
                 </View>
                 <TouchableOpacity
@@ -216,7 +253,7 @@ const ChatScreen = ({ route, navigation }) => {
                     ref={flatListRef}
                     data={messages}
                     renderItem={renderItem}
-                    keyExtractor={item => item.id || Math.random().toString()}
+                    keyExtractor={item => item.messageId || item.id || Math.random().toString()}
                     contentContainerStyle={styles.list}
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                 />
@@ -294,6 +331,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', elevation: 2 },
     headerInfo: { flex: 1, marginLeft: 15 },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+    statusText: { fontSize: 12, color: '#666', marginTop: 2 },
     typingIndicator: { fontSize: 12, color: '#007AFF', fontStyle: 'italic' },
     list: { padding: 15, paddingBottom: 20 },
     bubble: { maxWidth: '80%', padding: 10, borderRadius: 10, marginBottom: 10 },
