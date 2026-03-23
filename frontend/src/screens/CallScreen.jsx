@@ -7,6 +7,7 @@ import { RtcSurfaceView, VideoViewSetupMode } from 'react-native-agora';
 import AgoraService from '../services/AgoraService';
 import ChatService from '../services/ChatService';
 import { AuthContext } from '../navigation/AppNavigator';
+import { API_URLS } from '../config/apiConfig';
 
 const CallScreen = ({ route, navigation }) => {
     const { recipientId, recipientName, isVideo, isIncoming, channelName: incomingChannelName } = route.params;
@@ -159,8 +160,8 @@ const CallScreen = ({ route, navigation }) => {
             });
 
             // Fetch Token from Backend
-            // Use 192.168.1.5 for Android Emulator, localhost for iOS/Web
-            const API_URL = 'http://192.168.1.5:8080/api/agora';
+            // Use 192.168.1.6 for Android Emulator, localhost for iOS/Web
+            const API_URL = API_URLS.AGORA;
             console.log('Fetching token for channel:', channelNameRef.current);
 
             const response = await axios.get(`${API_URL}/token`, {

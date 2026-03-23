@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Replace with your local machine's IP address if running on emulator/device
-const API_URL = 'http://192.168.1.5:8080/api/users';
+import { API_URLS } from '../config/apiConfig';
+
+const API_URL = API_URLS.USERS;
 
 const UserService = {
     searchUsers: async (query, currentUserId, token) => {

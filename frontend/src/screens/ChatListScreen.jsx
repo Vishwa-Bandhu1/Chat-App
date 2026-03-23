@@ -18,9 +18,10 @@ import { AuthContext } from '../navigation/AppNavigator';
 import ChatService from '../services/ChatService';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.5:8080';
+const API_URL = 'http://192.168.1.6:8080';
 
 const ChatListScreen = ({ navigation }) => {
+    console.log("ChatListScreen: [REDSIGN_VERSION_1.0] - New UI is active");
     const { user } = useContext(AuthContext);
     const [chats, setChats] = useState([]);
     const [groups, setGroups] = useState([]);

@@ -23,6 +23,7 @@ import GroupChatScreen from '../screens/GroupChatScreen';
 import CreateGroupScreen from '../screens/CreateGroupScreen';
 import CallScreen from '../screens/CallScreen';
 import ChatService from '../services/ChatService';
+import { API_URLS } from '../config/apiConfig';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -70,6 +71,7 @@ function TabNavigator() {
 export const AuthContext = React.createContext();
 
 export default function AppNavigator() {
+    console.log(`AppNavigator: [REDSIGN_VERSION_1.1] - Navigator entry hit. Base IP: ${API_URLS.BASE_URL}`);
     const [user, setUser] = useState(null);
     const callHandledRef = useRef(false);
     const appState = useRef(AppState.currentState);
@@ -94,7 +96,7 @@ export default function AppNavigator() {
         const subscription = AppState.addEventListener('change', nextAppState => {
             if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
                 ChatService.client?.activate();
-                fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
+                fetch(`${API_URLS.USERS}/${userId}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -103,7 +105,7 @@ export default function AppNavigator() {
                 }).catch(e => console.log('Error setting online status', e));
             } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
                 ChatService.client?.deactivate();
-                fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
+                fetch(`${API_URLS.USERS}/${userId}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -115,7 +117,7 @@ export default function AppNavigator() {
         });
 
         // Initialize connection
-        fetch(`http://192.168.1.5:8080/api/users/${userId}/status`, {
+        fetch(`${API_URLS.USERS}/${userId}/status`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',

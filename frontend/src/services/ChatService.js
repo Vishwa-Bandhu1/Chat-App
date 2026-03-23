@@ -2,12 +2,11 @@ import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import 'fast-text-encoding';
 
-// The /websocket suffix is required when the Spring Boot endpoint uses .withSockJS()
-// Replace with your local machine's IP address if running on emulator/device
-const SOCKET_URL = 'ws://192.168.1.5:8080/ws/websocket';
+import { API_URLS } from '../config/apiConfig';
 
-// For Android Emulator, use 192.168.1.5. For physical device, use your PC's IP.
-const API_URL = 'http://192.168.1.5:8080';
+const SOCKET_URL = API_URLS.WS;
+const API_URL = API_URLS.CHATS;
+const BASE_URL = API_URLS.CHATS.replace('/api/chat', ''); // To handle conversations and messages
 
 class ChatService {
     constructor() {
@@ -18,7 +17,7 @@ class ChatService {
 
     async fetchConversations(userId, token) {
         try {
-            const response = await axios.get(`${API_URL}/conversations/${userId}`, {
+            const response = await axios.get(`${BASE_URL}/conversations/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -32,7 +31,7 @@ class ChatService {
 
     async fetchMessages(senderId, recipientId, token) {
         try {
-            const response = await axios.get(`${API_URL}/messages/${senderId}/${recipientId}`, {
+            const response = await axios.get(`${BASE_URL}/messages/${senderId}/${recipientId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -68,7 +67,7 @@ class ChatService {
 
     async fetchGroupMessages(groupId, token) {
         try {
-            const response = await axios.get(`${API_URL}/messages/group/${groupId}`, {
+            const response = await axios.get(`${BASE_URL}/messages/group/${groupId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

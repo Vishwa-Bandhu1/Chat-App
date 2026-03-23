@@ -15,9 +15,9 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../navigation/AppNavigator';
 import UserService from '../services/UserService';
-import axios from 'axios';
+import { API_URLS } from '../config/apiConfig';
 
-const API_URL = 'http://192.168.1.5:8080/api/groups';
+const API_URL = API_URLS.GROUPS;
 
 const CreateGroupScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);

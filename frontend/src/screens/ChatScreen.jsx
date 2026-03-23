@@ -21,7 +21,9 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.5:8080';
+import { API_URLS } from '../config/apiConfig';
+
+const BASE_URL = API_URLS.CHATS.replace('/api/chat', '');
 
 const ChatScreen = ({ route, navigation }) => {
     const { name, recipientId, avatar } = route.params || { name: 'Chat', recipientId: '', avatar: null };
@@ -54,7 +56,7 @@ const ChatScreen = ({ route, navigation }) => {
 
         const fetchRecipientStatus = async () => {
             try {
-                const res = await axios.get(`${API_URL}/api/users/search?query=${name}&currentUserId=${currentUserId}`, {
+                const res = await axios.get(`${BASE_URL}/api/users/search?query=${name}&currentUserId=${currentUserId}`, {
                     headers: { Authorization: `Bearer ${user.accessToken}` }
                 });
                 if (res.data && res.data.length > 0) {
