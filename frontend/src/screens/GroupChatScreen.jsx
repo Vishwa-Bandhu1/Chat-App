@@ -42,18 +42,20 @@ const GroupChatScreen = ({ route, navigation }) => {
         }, user.username);
 
         return () => { };
-    }, [groupId]);
+    }, [groupId, user.accessToken, user.username]);
 
     const sendMessage = (content, type = 'TEXT') => {
         if (!content.trim() && type === 'TEXT') return;
+        if (!groupId) {
+            Alert.alert('Error', 'No group selected');
+            return;
+        }
 
         const chatMessage = {
             senderId: currentUserId,
             groupId: groupId,
-            content: content,
+            message: content,
             type: type,
-            status: 'DELIVERED',
-            timestamp: new Date().toISOString()
         };
 
         const tempId = Date.now().toString();
@@ -63,7 +65,7 @@ const GroupChatScreen = ({ route, navigation }) => {
         if (type === 'TEXT') setInputText('');
 
         try {
-            ChatService.sendMessage(chatMessage);
+            ChatService.sendMessage(chatMessage, user.accessToken);
         } catch (error) {
             Alert.alert('Error', 'Failed to send message');
         }

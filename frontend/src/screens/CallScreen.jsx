@@ -41,7 +41,7 @@ const CallScreen = ({ route, navigation }) => {
         return () => {
             cleanup();
         };
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (isConnected) {

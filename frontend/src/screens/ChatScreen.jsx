@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -35,6 +35,7 @@ const ChatScreen = ({ route, navigation }) => {
     const [uploading, setUploading] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [drawerType, setDrawerType] = useState('emoji');
+    const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef(null);
 
     const currentUserId = user?.id || user?.userId;
@@ -47,6 +48,43 @@ const ChatScreen = ({ route, navigation }) => {
         'https://cdn-icons-png.flaticon.com/512/5766/5766324.png',
         'https://cdn-icons-png.flaticon.com/512/5766/5766336.png',
     ];
+
+    const markMessagesAsSeen = useCallback(async (msgs) => {
+        const unseenMsgs = msgs.filter(m => m.senderId === recipientId && m.status !== 'SEEN');
+        for (const msg of unseenMsgs) {
+            try {
+                await axios.patch(`${BASE_URL}/api/messages/${msg.id || msg.messageId}/status`, { status: 'SEEN' }, {
+                    headers: { Authorization: `Bearer ${user.accessToken}` }
+                });
+            } catch (e) {
+                console.error('Error marking message as seen:', e);
+            }
+        }
+
+        try {
+            const userId = user?.id || user?.userId;
+            if (userId && recipientId) {
+                await axios.patch(`${BASE_URL}/api/conversations/${userId}/${recipientId}/read`, {}, {
+                    headers: { Authorization: `Bearer ${user.accessToken}` }
+                });
+            }
+        } catch (e) {
+            console.error('Error resetting conversation unread count:', e);
+        }
+    }, [user, recipientId]);
+
+    const handleInputChange = (text) => {
+        setInputText(text);
+        if (text.trim()) {
+            ChatService.sendTyping(recipientId, currentUserId, true);
+            // Stop typing after 2 seconds of no input
+            setTimeout(() => {
+                ChatService.sendTyping(recipientId, currentUserId, false);
+            }, 2000);
+        } else {
+            ChatService.sendTyping(recipientId, currentUserId, false);
+        }
+    };
 
     useEffect(() => {
         if (!currentUserId || !recipientId) {
@@ -71,6 +109,8 @@ const ChatScreen = ({ route, navigation }) => {
                 const data = await ChatService.fetchMessages(currentUserId, recipientId, user.accessToken);
                 setMessages(data || []);
                 setLoading(false);
+                // Mark messages as seen
+                markMessagesAsSeen(data || []);
             } catch (error) {
                 console.error('Error fetching messages:', error);
                 setLoading(false);
@@ -81,41 +121,54 @@ const ChatScreen = ({ route, navigation }) => {
         fetchRecipientStatus();
         const statusInterval = setInterval(fetchRecipientStatus, 15000);
 
+        const userId = user?.id || user?.userId;
         ChatService.connect((msg) => {
             if (msg.senderId === recipientId || msg.receiverId === recipientId) {
                 setMessages(prev => {
-                    if (prev.find(m => (m.messageId || m.id) === (msg.messageId || msg.id))) return prev;
+                    const existingIndex = prev.findIndex(m => (m.messageId || m.id) === (msg.messageId || msg.id));
+                    if (existingIndex >= 0) {
+                        const updated = [...prev];
+                        updated[existingIndex] = msg;
+                        return updated;
+                    }
                     return [...prev, msg];
                 });
             }
-        }, user.username);
+        }, userId, null, (typing) => {
+            if (typing.senderId === recipientId) {
+                setIsTyping(typing.isTyping);
+            }
+        });
 
         return () => clearInterval(statusInterval);
-    }, [currentUserId, recipientId]);
+    }, [currentUserId, recipientId, markMessagesAsSeen, name, user.accessToken, user?.id, user?.userId]);
 
     const sendMessage = async (content, type = 'TEXT') => {
         if (!content.trim() && type === 'TEXT') return;
-        if (!recipientId) return;
+        if (!recipientId) {
+            Alert.alert("Error", "No recipient selected");
+            return;
+        }
+        if (!currentUserId) {
+            Alert.alert("Error", "User not authenticated");
+            return;
+        }
 
         const chatMessage = {
             senderId: currentUserId,
             receiverId: recipientId,
-            recipientId: recipientId,
             message: content,
-            content: content,
             type: type,
-            status: 'SENT',
-            timestamp: new Date().toISOString()
         };
 
         const tempId = Date.now().toString();
-        const tempMsg = { ...chatMessage, messageId: tempId, id: tempId };
+        const tempMsg = { ...chatMessage, messageId: tempId, id: tempId, status: 'SENT' };
         setMessages(prev => [...prev, tempMsg]);
 
         if (type === 'TEXT') setInputText('');
 
         try {
-            await ChatService.sendMessage(chatMessage);
+            await ChatService.sendMessage(chatMessage, user.accessToken);
         } catch (error) {
             Alert.alert("Error", "Failed to send message");
             setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -169,9 +222,16 @@ const ChatScreen = ({ route, navigation }) => {
                     )}
                     
                     {isLastInGroup && (
-                        <Text style={[styles.timeText, isMe ? styles.myTime : styles.theirTime]}>
-                            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={[styles.timeText, isMe ? styles.myTime : styles.theirTime]}>
+                                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                            {isMe && (
+                                <Text style={[styles.timeText, styles.myTime]}>
+                                    {item.status === 'SENT' ? ' ✓' : item.status === 'DELIVERED' ? ' ✓✓' : item.status === 'SEEN' ? ' 👁' : ''}
+                                </Text>
+                            )}
+                        </View>
                     )}
                 </View>
             </View>
@@ -232,6 +292,12 @@ const ChatScreen = ({ route, navigation }) => {
                 />
             )}
 
+            {isTyping && (
+                <View style={styles.typingIndicator}>
+                    <Text style={styles.typingText}>{name} is typing...</Text>
+                </View>
+            )}
+
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : null} keyboardVerticalOffset={0}>
                 <View style={styles.inputWrapper}>
                     <TouchableOpacity style={styles.inputAction} onPress={() => setShowDrawer(!showDrawer)}>
@@ -242,7 +308,7 @@ const ChatScreen = ({ route, navigation }) => {
                         <TextInput
                             style={styles.textInput}
                             value={inputText}
-                            onChangeText={setInputText}
+                            onChangeText={handleInputChange}
                             placeholder="Message..."
                             placeholderTextColor="#5A5A6E"
                             multiline
@@ -344,6 +410,8 @@ const styles = StyleSheet.create({
     dActiveText: { color: '#FFFFFF' },
     stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', padding: 20 },
     stIcon: { width: 60, height: 60, margin: 10 },
+    typingIndicator: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#1C1F3A', marginHorizontal: 16, marginBottom: 10, borderRadius: 16 },
+    typingText: { color: '#8E8E93', fontSize: 14, fontStyle: 'italic' },
     centered: { justifyContent: 'center', alignItems: 'center' }
 });
 

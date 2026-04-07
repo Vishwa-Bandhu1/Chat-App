@@ -29,7 +29,7 @@ public class ChatMessage {
     private String attachmentUrl;
 
     public enum MessageStatus {
-        RECEIVED, DELIVERED
+        SENT, DELIVERED, SEEN
     }
 
     public enum MessageType {

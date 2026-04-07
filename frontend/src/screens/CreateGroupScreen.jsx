@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
     Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
 import { AuthContext } from '../navigation/AppNavigator';
 import UserService from '../services/UserService';
 import { API_URLS } from '../config/apiConfig';
@@ -29,9 +30,9 @@ const CreateGroupScreen = ({ navigation }) => {
 
     useEffect(() => {
         fetchUsers();
-    }, []);
+    }, [fetchUsers]);
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const results = await UserService.searchUsers('', user.id, user.accessToken);
             setUsers(results);
@@ -40,7 +41,7 @@ const CreateGroupScreen = ({ navigation }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user.id, user.accessToken]);
 
     const toggleUser = (userId) => {
         setSelectedUsers(prev =>

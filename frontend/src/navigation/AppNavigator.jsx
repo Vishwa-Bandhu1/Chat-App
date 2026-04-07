@@ -38,27 +38,24 @@ function TabNavigator() {
                     if (route.name === 'Chats') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
                     else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
                     else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
-                    return <Icon name={iconName} size={size} color={color} />;
+                    return <Icon name={iconName} size={24} color={color} />;
                 },
-                tabBarActiveTintColor: '#6C63FF',
-                tabBarInactiveTintColor: '#5A5A6E',
+                tabBarActiveTintColor: '#A78BFA',
+                tabBarInactiveTintColor: '#636366',
                 tabBarStyle: {
-                    backgroundColor: '#0A0E21',
-                    borderTopColor: '#1C1F3A',
-                    height: 60,
-                    paddingBottom: 8,
+                    backgroundColor: '#000000',
+                    borderTopColor: '#1F1F1F',
+                    borderTopWidth: 0.5,
+                    height: 56,
+                    paddingBottom: 6,
+                    paddingTop: 4,
                 },
-                headerStyle: {
-                    backgroundColor: '#0A0E21',
-                    borderBottomColor: '#1C1F3A',
-                    elevation: 0,
-                    shadowOpacity: 0,
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '500',
+                    letterSpacing: 0.1,
                 },
-                headerTitleStyle: {
-                    color: '#FFFFFF',
-                    fontWeight: '800',
-                },
-                headerShown: false, // Screens handle their own headers for better design
+                headerShown: false,
             })}
         >
             <Tab.Screen name="Chats" component={ChatListScreen} />
