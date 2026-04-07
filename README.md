@@ -7,6 +7,8 @@ A premium real-time chat application built with **React Native** (Frontend) and 
 -   **User Authentication**: Secure Login and Signup using JWT and Spring Security.
 -   **Real-time Messaging**: Instant, low-latency chat using WebSocket (STOMP protocol).
 -   **Push Notifications**: Integrated with **Firebase Cloud Messaging (FCM)** for reliable background alerts.
+-   **Group Chat**: Complete group messaging support with dedicated conversation threads.
+-   **Conversation Architecture**: Advanced backend architecture to manage complex messaging flows and group metadata.
 -   **Call Signaling**: Real-time voice and video call alerts using WebSocket signals.
 -   **Stickers & Emojis**: Rich expressive chat with integrated sticker packs and emoji keyboard (`rn-emoji-keyboard`).
 -   **Image Uploads**: Support for sending images in chat (integrated with backend storage).
