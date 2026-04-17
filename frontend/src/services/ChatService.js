@@ -1,9 +1,8 @@
 import { Client } from '@stomp/stompjs';
-import axios from 'axios';
-import { Platform } from 'react-native';
 import 'fast-text-encoding';
 
 import { API_URLS } from '../config/apiConfig';
+import axios from './apiClient';
 
 const API_URL = API_URLS.CHATS;
 const BASE_URL = API_URLS.CHATS.replace('/api/chat', ''); // To handle conversations and messages
@@ -12,17 +11,7 @@ const API_CONVERSATIONS = `${BASE_URL}/api/conversations`;
 const API_GROUPS = `${BASE_URL}/api/groups`;
 
 const getWebSocketUrl = () => {
-    try {
-        const parsedUrl = new URL(API_URLS.BASE_URL);
-        let host = parsedUrl.hostname;
-        if (Platform.OS === 'android' && (host === 'localhost' || host === '127.0.0.1')) {
-            // host = '10.0.2.2'; // Removed! 10.0.2.2 fails on Physical Devices!
-        }
-        return `ws://${host}:${parsedUrl.port}/ws/websocket`;
-    } catch (error) {
-        console.warn('Failed to parse API_URLS.BASE_URL, falling back to configured WS URL', error);
-        return API_URLS.WS;
-    }
+    return API_URLS.WS;
 };
 
 class ChatService {

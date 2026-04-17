@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { RtcSurfaceView, VideoViewSetupMode } from 'react-native-agora';
 import AgoraService from '../services/AgoraService';
 import ChatService from '../services/ChatService';
+import axios from '../services/apiClient';
 import { AuthContext } from '../navigation/AppNavigator';
 import { API_URLS } from '../config/apiConfig';
 
@@ -159,8 +159,7 @@ const CallScreen = ({ route, navigation }) => {
                 }
             });
 
-            // Fetch Token from Backend
-            // Use 192.168.1.6 for Android Emulator, localhost for iOS/Web
+            // Fetch Token from Backend using the resolved API host.
             const API_URL = API_URLS.AGORA;
             console.log('Fetching token for channel:', channelNameRef.current);
 

@@ -1,8 +1,10 @@
 package com.chatapp.backend.controller;
 
 import com.chatapp.backend.model.ChatMessage;
+import com.chatapp.backend.model.Conversation;
 import com.chatapp.backend.repository.MessageRepository;
 import com.chatapp.backend.repository.UserRepository;
+import com.chatapp.backend.service.ConversationService;
 import com.chatapp.backend.service.FCMService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -22,6 +25,7 @@ public class MessageController {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final ConversationService conversationService;
     private final SimpMessagingTemplate messagingTemplate;
     private final FCMService fcmService;
 
@@ -33,9 +37,21 @@ public class MessageController {
         // Save to DB
         ChatMessage savedMessage = messageRepository.save(chatMessage);
 
+        // Update or create conversation metadata for both participants
+        Conversation conversation = conversationService.createOrUpdateConversation(
+                chatMessage.getSenderId(), chatMessage.getRecipientId(), chatMessage.getContent());
+
         // Forward via STOMP to the specified recipient
         String topicDestination = "/topic/messages/" + chatMessage.getRecipientId();
         messagingTemplate.convertAndSend(topicDestination, savedMessage);
+
+        // Publish real-time conversation updates
+        messagingTemplate.convertAndSendToUser(
+                chatMessage.getRecipientId(), "/queue/conversations",
+                conversationService.toDto(conversation, chatMessage.getRecipientId()));
+        messagingTemplate.convertAndSendToUser(
+                chatMessage.getSenderId(), "/queue/conversations",
+                conversationService.toDto(conversation, chatMessage.getSenderId()));
 
         // If recipient happens to be offline, trigger a push notification fallback
         userRepository.findById(chatMessage.getRecipientId()).ifPresent(recipient -> {
@@ -92,4 +108,5 @@ public class MessageController {
 
         return ResponseEntity.ok().build();
     }
+
 }

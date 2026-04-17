@@ -12,18 +12,45 @@ import {
     Alert,
     Image,
     StatusBar,
+    Modal,
+    TouchableWithoutFeedback,
+    LayoutAnimation,
+    UIManager
 } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ChatService from '../services/ChatService';
 import { AuthContext } from '../navigation/AppNavigator';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
-import axios from 'axios';
+import axios from '../services/apiClient';
 
 import { API_URLS } from '../config/apiConfig';
+import { triggerLongPressHaptic } from '../utils/haptics';
 
 const BASE_URL = API_URLS.CHATS.replace('/api/chat', '');
+
+const formatDateSeparator = (date) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    } else {
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+};
+
+const formatMessageTime = (date) => {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
 
 const ChatScreen = ({ route, navigation }) => {
     const { name, recipientId, avatar } = route.params || { name: 'Chat', recipientId: '', avatar: null };
@@ -36,9 +63,50 @@ const ChatScreen = ({ route, navigation }) => {
     const [showDrawer, setShowDrawer] = useState(false);
     const [drawerType, setDrawerType] = useState('emoji');
     const [isTyping, setIsTyping] = useState(false);
+    const [actionModalVisible, setActionModalVisible] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState(null);
     const flatListRef = useRef(null);
+    const isNearBottom = useRef(true);
 
     const currentUserId = user?.id || user?.userId;
+
+    const handleLongPress = (item) => {
+        if (item.senderId === currentUserId) {
+            triggerLongPressHaptic(40);
+            setSelectedMessage(item);
+            setActionModalVisible(true);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedMessage) return;
+        const msgId = selectedMessage.id || selectedMessage.messageId;
+        
+        setActionModalVisible(false);
+        
+        // Premium LayoutAnimation for smooth collapse and fade out
+        LayoutAnimation.configureNext({
+            duration: 350,
+            update: { type: LayoutAnimation.Types.easeInEaseOut },
+            delete: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
+        });
+        
+        setMessages(prev => prev.filter(m => (m.id || m.messageId) !== msgId));
+
+        try {
+            await axios.delete(`${BASE_URL}/api/messages/${msgId}`, {
+                headers: { Authorization: `Bearer ${user.accessToken}` }
+            });
+            setSelectedMessage(null);
+        } catch (error) {
+            Alert.alert("Error", "Failed to fully delete on server.");
+        }
+    };
+
+    const handleScroll = (event) => {
+        const y = event.nativeEvent.contentOffset.y;
+        isNearBottom.current = y < 100;
+    };
 
     const stickers = [
         'https://cdn-icons-png.flaticon.com/512/4603/4603957.png',
@@ -107,7 +175,9 @@ const ChatScreen = ({ route, navigation }) => {
         const fetchHistory = async () => {
             try {
                 const data = await ChatService.fetchMessages(currentUserId, recipientId, user.accessToken);
-                setMessages(data || []);
+                // Sort by date descending (newest first) to support the inverted FlatList natively
+                const sortedData = (data || []).sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
+                setMessages(sortedData);
                 setLoading(false);
                 // Mark messages as seen
                 markMessagesAsSeen(data || []);
@@ -131,8 +201,15 @@ const ChatScreen = ({ route, navigation }) => {
                         updated[existingIndex] = msg;
                         return updated;
                     }
-                    return [...prev, msg];
+                    // Insert at beginning for inverted list
+                    return [msg, ...prev];
                 });
+                
+                if (isNearBottom.current) {
+                    setTimeout(() => {
+                        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+                    }, 100);
+                }
             }
         }, userId, null, (typing) => {
             if (typing.senderId === recipientId) {
@@ -162,10 +239,23 @@ const ChatScreen = ({ route, navigation }) => {
         };
 
         const tempId = Date.now().toString();
-        const tempMsg = { ...chatMessage, messageId: tempId, id: tempId, status: 'SENT' };
-        setMessages(prev => [...prev, tempMsg]);
+        const tempMsg = { 
+            ...chatMessage, 
+            messageId: tempId, 
+            id: tempId, 
+            status: 'SENT',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        // Insert at beginning for inverted list
+        setMessages(prev => [tempMsg, ...prev]);
 
         if (type === 'TEXT') setInputText('');
+        
+        // Always scroll to bottom when user sends a message
+        setTimeout(() => {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }, 100);
 
         try {
             await ChatService.sendMessage(chatMessage, user.accessToken);
@@ -194,45 +284,74 @@ const ChatScreen = ({ route, navigation }) => {
         const isMe = item.senderId === currentUserId;
         const msgContent = item.message || item.content;
         
-        // Logic for "consecutive messages" grouping feel
-        const nextMsg = messages[index + 1];
-        const prevMsg = messages[index - 1];
-        const isLastInGroup = !nextMsg || nextMsg.senderId !== item.senderId;
-        const isFirstInGroup = !prevMsg || prevMsg.senderId !== item.senderId;
+        const msgDate = new Date(item.createdAt || item.timestamp || Date.now());
+        
+        // Because data is inverted, index 0 is newest.
+        // The message visually "below" is newer (index - 1)
+        // The message visually "above" is older (index + 1)
+        const olderMsg = messages[index + 1];
+        const newerMsg = messages[index - 1];
+
+        const olderMsgDate = olderMsg ? new Date(olderMsg.createdAt || olderMsg.timestamp || Date.now()) : null;
+        const newerMsgDate = newerMsg ? new Date(newerMsg.createdAt || newerMsg.timestamp || Date.now()) : null;
+        
+        // Date separator should appear immediately BEFORE the chronologically first message of a day
+        const showDateSeparator = !olderMsgDate || olderMsgDate.toDateString() !== msgDate.toDateString();
+
+        // Grouping: first message of a consecutive chunk (chronologically => visually TOP)
+        const isFirstInGroup = !olderMsg || olderMsg.senderId !== item.senderId || showDateSeparator;
+
+        // Grouping: last message of a contiguous chunk (chronologically => visually BOTTOM)
+        const isLastInGroup = !newerMsg || newerMsg.senderId !== item.senderId || (newerMsgDate && newerMsgDate.toDateString() !== msgDate.toDateString());
+
+        const renderTicks = () => {
+             if (!isMe) return null;
+             if (item.status === 'SENT') return <Icon name="checkmark-outline" size={14} color="#A0A0B0" style={styles.tickIcon} />;
+             if (item.status === 'DELIVERED') return <Icon name="checkmark-done-outline" size={14} color="#A0A0B0" style={styles.tickIcon} />;
+             if (item.status === 'SEEN') return <Icon name="checkmark-done-outline" size={14} color="#34B7F1" style={styles.tickIcon} />;
+             return <Icon name="time-outline" size={12} color="#A0A0B0" style={styles.tickIcon} />; 
+        };
 
         return (
-            <View style={[
-                styles.messageRow,
-                isMe ? styles.myRow : styles.theirRow,
-                isLastInGroup && { marginBottom: 12 }
-            ]}>
+            <View style={{ width: '100%' }}>
+                {showDateSeparator && (
+                    <View style={styles.dateSeparatorContainer}>
+                        <Text style={styles.dateSeparatorText}>{formatDateSeparator(msgDate)}</Text>
+                    </View>
+                )}
+                
                 <View style={[
-                    styles.bubble,
-                    isMe ? styles.myBubble : styles.theirBubble,
-                    isMe 
-                        ? (isFirstInGroup ? styles.myTop : (isLastInGroup ? styles.myBottom : styles.myMiddle))
-                        : (isFirstInGroup ? styles.theirTop : (isLastInGroup ? styles.theirBottom : styles.theirMiddle))
+                    styles.messageRow,
+                    isMe ? styles.myRow : styles.theirRow,
+                    isFirstInGroup && !showDateSeparator && { marginTop: 12 },
+                    { marginBottom: 2 }
                 ]}>
-                    {item.type === 'IMAGE' ? (
-                        <Image source={{ uri: msgContent }} style={styles.imageMsg} resizeMode="cover" />
-                    ) : item.type === 'STICKER' ? (
-                        <Image source={{ uri: msgContent }} style={styles.stickerMsg} resizeMode="contain" />
-                    ) : (
-                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>{msgContent}</Text>
-                    )}
-                    
-                    {isLastInGroup && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={[styles.timeText, isMe ? styles.myTime : styles.theirTime]}>
-                                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <TouchableOpacity 
+                        activeOpacity={0.85}
+                        onLongPress={() => handleLongPress(item)}
+                        delayLongPress={200}
+                        style={[
+                            styles.bubble,
+                            isMe ? styles.myBubble : styles.theirBubble,
+                            isMe 
+                                ? (isFirstInGroup ? styles.myTop : (isLastInGroup ? styles.myBottom : styles.myMiddle))
+                                : (isFirstInGroup ? styles.theirTop : (isLastInGroup ? styles.theirBottom : styles.theirMiddle))
+                        ]}>
+                        {item.type === 'IMAGE' ? (
+                            <Image source={{ uri: msgContent }} style={styles.imageMsg} resizeMode="cover" />
+                        ) : item.type === 'STICKER' ? (
+                            <Image source={{ uri: msgContent }} style={styles.stickerMsg} resizeMode="contain" />
+                        ) : (
+                            <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>{msgContent}</Text>
+                        )}
+                        
+                        <View style={styles.timeContainer}>
+                            <Text style={[styles.timeText, isMe ? styles.myTimeText : styles.theirTimeText]}>
+                                {formatMessageTime(msgDate)}
                             </Text>
-                            {isMe && (
-                                <Text style={[styles.timeText, styles.myTime]}>
-                                    {item.status === 'SENT' ? ' ✓' : item.status === 'DELIVERED' ? ' ✓✓' : item.status === 'SEEN' ? ' 👁' : ''}
-                                </Text>
-                            )}
+                            {renderTicks()}
                         </View>
-                    )}
+                    </TouchableOpacity>
                 </View>
             </View>
         );
@@ -284,11 +403,15 @@ const ChatScreen = ({ route, navigation }) => {
             ) : (
                 <FlatList
                     ref={flatListRef}
+                    inverted
                     data={messages}
                     renderItem={renderItem}
                     keyExtractor={item => (item.messageId || item.id || Date.now() + Math.random()).toString()}
                     contentContainerStyle={styles.listPadding}
-                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
+                    maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
                 />
             )}
 
@@ -356,6 +479,34 @@ const ChatScreen = ({ route, navigation }) => {
                     </View>
                 )}
             </KeyboardAvoidingView>
+
+            {/* Premium Action Menu Modal */}
+            <Modal
+                visible={actionModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setActionModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setActionModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.actionMenu}>
+                                <TouchableOpacity style={styles.actionItem} onPress={confirmDelete}>
+                                    <Icon name="trash-outline" size={22} color="#FF3B30" />
+                                    <Text style={[styles.actionText, { color: '#FF3B30' }]}>Delete Message</Text>
+                                </TouchableOpacity>
+                                
+                                <View style={styles.actionDivider} />
+                                
+                                <TouchableOpacity style={styles.actionItem} onPress={() => setActionModalVisible(false)}>
+                                    <Icon name="close-outline" size={22} color="#FFFFFF" />
+                                    <Text style={styles.actionText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -377,21 +528,45 @@ const styles = StyleSheet.create({
     messageRow: { flexDirection: 'row', width: '100%', marginBottom: 2 },
     myRow: { justifyContent: 'flex-end' },
     theirRow: { justifyContent: 'flex-start' },
-    bubble: { maxWidth: '75%', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20 },
+    bubble: { maxWidth: '75%', minWidth: 85, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 18 },
     myBubble: { backgroundColor: '#6C63FF' },
     theirBubble: { backgroundColor: '#1C1F3A' },
-    myTop: { borderTopRightRadius: 4 },
-    myMiddle: { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-    myBottom: { borderBottomRightRadius: 4 },
-    theirTop: { borderTopLeftRadius: 4 },
-    theirMiddle: { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
-    theirBottom: { borderBottomLeftRadius: 4 },
-    msgText: { fontSize: 15, lineHeight: 21 },
+    myTop: { borderTopRightRadius: 6 },
+    myMiddle: { borderTopRightRadius: 6, borderBottomRightRadius: 6 },
+    myBottom: { borderBottomRightRadius: 6 },
+    theirTop: { borderTopLeftRadius: 6 },
+    theirMiddle: { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 },
+    theirBottom: { borderBottomLeftRadius: 6 },
+    msgText: { fontSize: 15, lineHeight: 22, color: '#FFFFFF' },
     myText: { color: '#FFFFFF' },
-    theirText: { color: '#FFFFFF' },
-    timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end', opacity: 0.6 },
-    myTime: { color: '#FFFFFF' },
-    theirTime: { color: '#8E8E93' },
+    theirText: { color: '#EAEAEA' },
+    
+    timeContainer: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', marginTop: 2, marginLeft: 16 },
+    timeText: { fontSize: 11, opacity: 0.7 },
+    myTimeText: { color: '#E0E0FF' },
+    theirTimeText: { color: '#A0A0B0' },
+    tickIcon: { marginLeft: 4, marginTop: 1 },
+    
+    dateSeparatorContainer: {
+        alignSelf: 'center',
+        backgroundColor: '#1E2240',
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        borderRadius: 16,
+        marginVertical: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1,
+        elevation: 2,
+    },
+    dateSeparatorText: {
+        color: '#A0A0B0',
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
     imageMsg: { width: 220, height: 220, borderRadius: 14 },
     stickerMsg: { width: 100, height: 100 },
     inputWrapper: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#1C1F3A' },
@@ -412,7 +587,14 @@ const styles = StyleSheet.create({
     stIcon: { width: 60, height: 60, margin: 10 },
     typingIndicator: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#1C1F3A', marginHorizontal: 16, marginBottom: 10, borderRadius: 16 },
     typingText: { color: '#8E8E93', fontSize: 14, fontStyle: 'italic' },
-    centered: { justifyContent: 'center', alignItems: 'center' }
+    centered: { justifyContent: 'center', alignItems: 'center' },
+    
+    // Action Modal Styles
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    actionMenu: { width: 260, backgroundColor: '#1C1F3A', borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20 },
+    actionDivider: { height: 1, backgroundColor: '#2A2E4B' },
+    actionText: { fontSize: 16, fontWeight: '600', marginLeft: 14, color: '#FFFFFF' }
 });
 
 export default ChatScreen;

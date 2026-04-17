@@ -17,7 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../navigation/AppNavigator';
 import ChatService from '../services/ChatService';
 import { API_URLS } from '../config/apiConfig';
-import axios from 'axios';
+import axios from '../services/apiClient';
 
 const API_URL = API_URLS.CHATS.replace('/api/chat', '');
 

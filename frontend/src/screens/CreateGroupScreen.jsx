@@ -13,7 +13,7 @@ import {
     Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import axios from 'axios';
+import axios from '../services/apiClient';
 import { AuthContext } from '../navigation/AppNavigator';
 import UserService from '../services/UserService';
 import { API_URLS } from '../config/apiConfig';

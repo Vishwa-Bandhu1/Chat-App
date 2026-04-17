@@ -15,6 +15,10 @@ A premium real-time chat application built with **React Native** (Frontend) and 
 -   **User Directory**: Global search for registered users to start new conversations (User Search Screen).
 -   **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
 -   **Modern UI**: Sleek dark-mode inspired design with smooth micro-animations.
+-   **Advanced Messaging UI**: Redesigned chat bubbles with grouping logic, inverted high-performance scrolling, and date separators.
+-   **Action Menus**: Contextual modal menus for message actions (e.g., Delete Message) triggered by long press.
+-   **Haptic Feedback**: Integrated tactile responses for a more premium mobile feel.
+-   **Robust API Client**: Centralized API architecture with interceptors for debugging, timeout handling, and unified error mapping.
 -   **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
 
 ## 🛠 Tech Stack
@@ -70,7 +74,7 @@ A premium real-time chat application built with **React Native** (Frontend) and 
     npm install
     ```
 3.  **FCM Setup**: Place your `google-services.json` in `frontend/android/app/`.
-4.  **Configure API URL**: Update `API_URL` in services to your local IP address.
+4.  **Configure API URL**: Update `frontend/src/config/apiConfig.js` so `DEVICE_LAN_HOST` matches your PC Wi-Fi IP.
 5.  Start Metro Bundler:
     ```bash
     npm start

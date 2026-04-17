@@ -1,6 +1,5 @@
-import axios from 'axios';
-
 import { API_URLS } from '../config/apiConfig';
+import axios from './apiClient';
 
 const API_URL = API_URLS.USERS;
 
