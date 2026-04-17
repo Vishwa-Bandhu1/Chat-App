@@ -102,5 +102,25 @@ A premium real-time chat application built with **React Native** (Frontend) and 
 
 ---
 
+## 🐳 Docker Deployment (Backend)
+
+The backend is containerized and can be run using Docker.
+
+1.  **Build the JAR**:
+    ```bash
+    cd backend
+    ./mvnw clean package -DskipTests
+    ```
+2.  **Build the Image**:
+    ```bash
+    docker build -t chat-app-backend .
+    ```
+3.  **Run the Container**:
+    ```bash
+    docker run -p 8080:8080 chat-app-backend
+    ```
+
+---
+
 ## 🤝 Contributing
 Feel free to fork this repository and submit pull requests.

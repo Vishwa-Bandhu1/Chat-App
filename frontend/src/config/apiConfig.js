@@ -1,42 +1,9 @@
-import { NativeModules, Platform } from 'react-native';
+import { ACTIVE_BASE_URL } from './api';
 
-const API_PORT = '8080';
+export const BASE_URL = ACTIVE_BASE_URL;
 
-// Current Wi-Fi IP from this machine on 2026-04-17. Update this if your LAN IP changes.
-const DEVICE_LAN_HOST = '192.168.1.6';
-const IOS_SIMULATOR_HOST = 'localhost';
-
-const extractHost = (url = '') => {
-    const match = url.match(/^[a-zA-Z]+:\/\/([^/:?#]+)/);
-    return match?.[1] || null;
-};
-
-const getMetroHost = () => {
-    const scriptURL = NativeModules?.SourceCode?.scriptURL;
-    const host = extractHost(scriptURL);
-
-    if (!host || host === 'localhost' || host === '127.0.0.1') {
-        return null;
-    }
-
-    return host;
-};
-
-export const resolveApiHost = () => {
-    const metroHost = getMetroHost();
-    if (metroHost) {
-        return metroHost;
-    }
-
-    if (__DEV__ && Platform.OS === 'ios') {
-        return IOS_SIMULATOR_HOST;
-    }
-
-    return DEVICE_LAN_HOST;
-};
-
-export const API_HOST = resolveApiHost();
-export const BASE_URL = `http://${API_HOST}:${API_PORT}`;
+// Generate WS URL by replacing http with ws, or https with wss
+export const WS_BASE_URL = BASE_URL.replace(/^http/, 'ws');
 
 export const API_URLS = {
     BASE_URL: BASE_URL,
@@ -47,7 +14,7 @@ export const API_URLS = {
     CONVERSATIONS: `${BASE_URL}/api/conversations`,
     GROUPS: `${BASE_URL}/api/groups`,
     AGORA: `${BASE_URL}/api/agora`,
-    WS: `ws://${API_HOST}:${API_PORT}/ws/websocket`,
+    WS: `${WS_BASE_URL}/ws/websocket`,
 };
 
 export default API_URLS;

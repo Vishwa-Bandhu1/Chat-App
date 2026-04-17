@@ -1,12 +1,14 @@
 import axios from 'axios';
-
+import { ACTIVE_BASE_URL } from '../config/api';
 import { API_URLS } from '../config/apiConfig';
 
 const REQUEST_TIMEOUT_MS = 10000;
 
 const apiClient = axios.create({
+    baseURL: ACTIVE_BASE_URL,
     timeout: REQUEST_TIMEOUT_MS,
     headers: {
+        'Content-Type': 'application/json',
         Accept: 'application/json',
     },
 });
