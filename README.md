@@ -57,10 +57,14 @@ A premium real-time chat application built with **React Native** (Frontend) and 
     ```bash
     cd backend
     ```
-2.  Configure database credentials and **Firebase `serviceAccountKey.json`** in `src/main/resources/application.yml`.
+2.  Configure backend environment variables and add **Firebase `serviceAccountKey.json`** if you need FCM locally.
+    ```bash
+    MONGODB_URI=<your-mongodb-connection-string>
+    JWT_SECRET=<your-long-random-secret>
+    ```
 3.  Run the application:
     ```bash
-    ./mvnw spring-boot:run
+    mvn spring-boot:run
     ```
     The server will start on `http://localhost:8080`.
 
@@ -113,8 +117,15 @@ The backend is containerized and can be built and run entirely using Docker (no 
     ```
 2.  **Run the Container**:
     ```bash
-    docker run -p 8080:8080 chat-app-backend
+    docker run -e MONGODB_URI=<your-mongodb-connection-string> -e JWT_SECRET=<your-long-random-secret> -p 8080:8080 chat-app-backend
     ```
+
+### Render Deployment Notes
+
+-   Set `MONGODB_URI` in Render. The backend also accepts `MONGO_URI`, `MONGO_URL`, `MONGODB_URL`, and `DATABASE_URL`.
+-   Without a Mongo connection string, the backend falls back to `mongodb://localhost:27017/chatapp`, which fails inside Render unless MongoDB is running in the same container.
+-   Set `JWT_SECRET` in Render.
+-   The backend reads `PORT` from the environment so Render can detect the service correctly.
 
 ---
 

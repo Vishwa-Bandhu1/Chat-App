@@ -3,7 +3,7 @@ spring:
     name: backend
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/chatapp}
+      uri: ${MONGODB_URI:${MONGO_URI:${MONGO_URL:${MONGODB_URL:${DATABASE_URL:mongodb://localhost:27017/chatapp}}}}}
   config:
     import: optional:classpath:application-secrets.yml
   main:
@@ -11,7 +11,7 @@ spring:
 
 server:
   address: 0.0.0.0
-  port: 8080
+  port: ${PORT:8080}
 
 app:
   cors:
