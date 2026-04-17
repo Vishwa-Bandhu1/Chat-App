@@ -128,6 +128,10 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            if (e instanceof IllegalStateException) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("message", e.getMessage()));
+            }
             e.printStackTrace(); // Log error for debugging
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Invalid Token: " + e.getMessage()));

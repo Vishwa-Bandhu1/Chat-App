@@ -1,5 +1,6 @@
 package com.chatapp.backend.service;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -13,6 +14,11 @@ public class FCMService {
     public void sendPushNotification(String userDeviceToken, String title, String body, String conversationId) {
         if (userDeviceToken == null || userDeviceToken.isEmpty()) {
             log.warn("Attempted to send FCM notification but device token is missing");
+            return;
+        }
+
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("Skipping FCM notification because Firebase is not configured");
             return;
         }
 

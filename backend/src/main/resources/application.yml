@@ -21,6 +21,16 @@ jwt:
   secret: ${JWT_SECRET:ThisIsAVeryLongSelectKeyForJWTTokenGenerationEnsureItIsLongEnough}
   expiration: 86400000 # 24 hours in milliseconds
 
+agora:
+  app:
+    id: ${AGORA_APP_ID:}
+    certificate: ${AGORA_APP_CERTIFICATE:}
+
+firebase:
+  service-account:
+    path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
+    json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+
 logging:
   level:
     root: INFO

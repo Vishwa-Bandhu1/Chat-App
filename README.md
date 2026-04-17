@@ -57,10 +57,19 @@ A premium real-time chat application built with **React Native** (Frontend) and 
     ```bash
     cd backend
     ```
-2.  Configure backend environment variables and add **Firebase `serviceAccountKey.json`** if you need FCM locally.
+2.  Configure backend environment variables. Optional features (FCM, calling) require additional secrets.
     ```bash
     MONGODB_URI=<your-mongodb-connection-string>
     JWT_SECRET=<your-long-random-secret>
+    
+    # Optional: Agora calling
+    AGORA_APP_ID=<your-app-id>
+    AGORA_APP_CERTIFICATE=<your-app-certificate>
+    
+    # Optional: Firebase (FCM/Auth)
+    FIREBASE_SERVICE_ACCOUNT_JSON=<full-json-string> 
+    # OR
+    FIREBASE_SERVICE_ACCOUNT_PATH=<relative-path-to-file>
     ```
 3.  Run the application:
     ```bash
@@ -125,6 +134,8 @@ The backend is containerized and can be built and run entirely using Docker (no 
 -   Set `MONGODB_URI` in Render. The backend also accepts `MONGO_URI`, `MONGO_URL`, `MONGODB_URL`, and `DATABASE_URL`.
 -   Without a Mongo connection string, the backend falls back to `mongodb://localhost:27017/chatapp`, which fails inside Render unless MongoDB is running in the same container.
 -   Set `JWT_SECRET` in Render.
+-   Set `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` only if you want Agora token generation enabled.
+-   Set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH` only if you want Firebase auth or FCM enabled.
 -   The backend reads `PORT` from the environment so Render can detect the service correctly.
 
 ---

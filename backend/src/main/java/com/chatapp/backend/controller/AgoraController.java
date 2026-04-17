@@ -3,6 +3,7 @@ package com.chatapp.backend.controller;
 
 import com.chatapp.backend.util.AgoraUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,10 +15,10 @@ import java.util.Map;
 @CrossOrigin(origins = "*") // Allow requests from React Native
 public class AgoraController {
 
-    @Value("${agora.app.id}")
+    @Value("${agora.app.id:}")
     private String appId;
 
-    @Value("${agora.app.certificate}")
+    @Value("${agora.app.certificate:}")
     private String appCertificate;
 
     @GetMapping("/token")
@@ -28,9 +29,10 @@ public class AgoraController {
         System.out.println("Agora Token Request: Channel=" + channelName + ", UID=" + uid);
         System.out.println("App ID: " + appId); // Do not log certificate for security in prod, but ok for debug
 
-        if (appId == null || appCertificate == null) {
+        if (appId == null || appId.isBlank() || appCertificate == null || appCertificate.isBlank()) {
             System.err.println("Agora Configuration Missing!");
-            return ResponseEntity.internalServerError().body(Map.of("error", "Agora Configuration Missing"));
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Agora is not configured on the server"));
         }
 
         // Token validity time in seconds (e.g., 24 hours)
