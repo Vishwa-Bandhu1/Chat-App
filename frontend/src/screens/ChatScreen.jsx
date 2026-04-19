@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import {
     View,
@@ -28,6 +29,7 @@ import { AuthContext } from '../navigation/AppNavigator';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { EmojiKeyboard } from 'rn-emoji-keyboard';
 import axios from '../services/apiClient';
+import { GlobalUI } from '../utils/GlobalUI';
 
 import { API_URLS } from '../config/apiConfig';
 import { triggerLongPressHaptic } from '../utils/haptics';
@@ -99,7 +101,7 @@ const ChatScreen = ({ route, navigation }) => {
             });
             setSelectedMessage(null);
         } catch (error) {
-            Alert.alert("Error", "Failed to fully delete on server.");
+            GlobalUI.showToast("Failed to fully delete on server.", 'error');
         }
     };
 
@@ -223,11 +225,11 @@ const ChatScreen = ({ route, navigation }) => {
     const sendMessage = async (content, type = 'TEXT') => {
         if (!content.trim() && type === 'TEXT') return;
         if (!recipientId) {
-            Alert.alert("Error", "No recipient selected");
+            GlobalUI.showToast("No recipient selected", 'error');
             return;
         }
         if (!currentUserId) {
-            Alert.alert("Error", "User not authenticated");
+            GlobalUI.showToast("User not authenticated", 'error');
             return;
         }
 
@@ -260,7 +262,7 @@ const ChatScreen = ({ route, navigation }) => {
         try {
             await ChatService.sendMessage(chatMessage, user.accessToken);
         } catch (error) {
-            Alert.alert("Error", "Failed to send message");
+            GlobalUI.showToast("Failed to send message", 'error');
             setMessages(prev => prev.filter(m => m.id !== tempId));
         }
     };
@@ -274,7 +276,7 @@ const ChatScreen = ({ route, navigation }) => {
             const fileUrl = await ChatService.uploadImage(result.assets[0].uri, user.accessToken);
             sendMessage(fileUrl, 'IMAGE');
         } catch (error) {
-            Alert.alert('Error', 'Upload failed.');
+            GlobalUI.showToast('Upload failed.', 'error');
         } finally {
             setUploading(false);
         }

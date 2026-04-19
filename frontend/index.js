@@ -12,4 +12,11 @@ LogBox.ignoreLogs([
     'This method is deprecated',
 ]);
 
+if (!__DEV__) {
+    console.log = () => {};
+    console.info = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+}
+
 AppRegistry.registerComponent(appName, () => App);

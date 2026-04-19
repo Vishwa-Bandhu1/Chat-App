@@ -68,7 +68,7 @@ function TabNavigator() {
 export const AuthContext = React.createContext();
 
 export default function AppNavigator() {
-    console.log(`AppNavigator: [REDSIGN_VERSION_1.1] - Navigator entry hit. Base IP: ${API_URLS.BASE_URL}`);
+    // AppNavigator initialized run.
     const [user, setUser] = useState(null);
     const callHandledRef = useRef(false);
     const appState = useRef(AppState.currentState);

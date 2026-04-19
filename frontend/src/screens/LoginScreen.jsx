@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../navigation/AppNavigator';
 import AuthService from '../services/AuthService';
+import { GlobalUI } from '../utils/GlobalUI';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
@@ -48,7 +49,7 @@ const LoginScreen = ({ navigation }) => {
             const message = typeof error === 'string'
                 ? error
                 : error?.message || 'Login failed. Please check your credentials.';
-            Alert.alert('Login Failed', message);
+            GlobalUI.showToast(message, 'error');
         }
     };
 

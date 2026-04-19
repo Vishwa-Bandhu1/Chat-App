@@ -18,7 +18,9 @@ A premium real-time chat application built with **React Native** (Frontend) and 
 -   **Advanced Messaging UI**: Redesigned chat bubbles with grouping logic, inverted high-performance scrolling, and date separators.
 -   **Action Menus**: Contextual modal menus for message actions (e.g., Delete Message) triggered by long press.
 -   **Haptic Feedback**: Integrated tactile responses for a more premium mobile feel.
--   **Robust API Client**: Centralized API architecture with interceptors for debugging, timeout handling, and unified error mapping.
+-   **Global UI System**: Centralized animated loading overlays and premium toast notifications for a native app feel.
+-   **API Resilience & Auto-Retry**: Automated 3-stage retry logic with exponential backoff for handling intermittent network or server issues.
+-   **Render Quick-Start**: Intelligent "Waking up server" status tracking specifically optimized for Render cold starts.
 -   **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
 
 ## 🛠 Tech Stack

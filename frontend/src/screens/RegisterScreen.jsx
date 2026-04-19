@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AuthService from '../services/AuthService';
+import { GlobalUI } from '../utils/GlobalUI';
 
 const RegisterScreen = ({ navigation }) => {
     const [fullName, setFullName] = useState('');
@@ -78,7 +79,7 @@ const RegisterScreen = ({ navigation }) => {
             const message = typeof error === 'string'
                 ? error
                 : error?.message || 'Registration failed. Please try again.';
-            Alert.alert('Registration Failed', message);
+            GlobalUI.showToast(message, 'error');
         }
     };
 
