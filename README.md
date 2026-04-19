@@ -1,144 +1,150 @@
-# Chat App - React Native + Spring Boot
+# 🚀 Chat App - Premium Real-Time Messaging
 
-A premium real-time chat application built with **React Native** (Frontend) and **Java Spring Boot** (Backend), featuring WebSocket communication, MongoDB storage, and a modern, high-performance UI.
+A high-performance, full-stack real-time chat application featuring a sleek dark-mode UI, robust system resilience, and cross-platform mobile support. Built with **React Native (CLI)** and **Java Spring Boot**, optimized for production-grade scalability.
 
-## 📱 Features
+---
 
--   **User Authentication**: Secure Login and Signup using JWT and Spring Security.
--   **Real-time Messaging**: Instant, low-latency chat using WebSocket (STOMP protocol).
--   **Push Notifications**: Integrated with **Firebase Cloud Messaging (FCM)** for reliable background alerts.
--   **Group Chat**: Complete group messaging support with dedicated conversation threads.
--   **Conversation Architecture**: Advanced backend architecture to manage complex messaging flows and group metadata.
--   **Call Signaling**: Real-time voice and video call alerts using WebSocket signals.
--   **Stickers & Emojis**: Rich expressive chat with integrated sticker packs and emoji keyboard (`rn-emoji-keyboard`).
--   **Image Uploads**: Support for sending images in chat (integrated with backend storage).
--   **User Directory**: Global search for registered users to start new conversations (User Search Screen).
--   **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
--   **Modern UI**: Sleek dark-mode inspired design with smooth micro-animations.
--   **Advanced Messaging UI**: Redesigned chat bubbles with grouping logic, inverted high-performance scrolling, and date separators.
--   **Action Menus**: Contextual modal menus for message actions (e.g., Delete Message) triggered by long press.
--   **Haptic Feedback**: Integrated tactile responses for a more premium mobile feel.
--   **Global UI System**: Centralized animated loading overlays and premium toast notifications for a native app feel.
--   **API Resilience & Auto-Retry**: Automated 3-stage retry logic with exponential backoff for handling intermittent network or server issues.
--   **Render Quick-Start**: Intelligent "Waking up server" status tracking specifically optimized for Render cold starts.
--   **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
+## 🏗 System Architecture
+
+```mermaid
+graph TD
+    subgraph Mobile_App ["📱 Frontend (React Native)"]
+        UI["Modern UI Screens"]
+        G_UI["Global UI Overlay"]
+        AC["apiClient (Axios + Retry)"]
+        WS_C["WebSocket Client (STOMP)"]
+    end
+
+    subgraph Backend_Services ["⚙️ Backend (Spring Boot)"]
+        SC["Security Config (JWT)"]
+        CC["Chat Controller"]
+        MC["Message Controller"]
+        FCM["FCM Integration Service"]
+        AG["Agora Signaling Service"]
+    end
+
+    subgraph Data_Storage ["💾 Data & Messaging"]
+        DB[(MongoDB Atlas)]
+        FCM_S[Firebase Cloud Messaging]
+        WS_B[WebSocket Message Broker]
+    end
+
+    UI --> G_UI
+    G_UI --> AC
+    AC -- REST API --> SC
+    WS_C -- STOMP --> WS_B
+    SC --> CC
+    SC --> MC
+    CC --> DB
+    MC --> DB
+    FCM --> FCM_S
+    AG --> WS_B
+```
+
+---
+
+## 📱 Premium Features
+
+### 💬 Messaging Experience
+- **Advanced UI**: Redesigned chat bubbles with grouping logic, inverted high-performance scrolling, and date separators.
+*   **Stickers & Emojis**: Fully integrated sticker packs and custom emoji keyboard.
+*   **Multimedia**: Support for image uploads and real-time document sharing.
+*   **Group Chat**: Dedicated conversation threads for groups with flexible metadata management.
+
+### 🛡 Core System
+- **Global UI Overlay**: Centralized animated loading overlays and premium toast notifications.
+*   **API Resilience**: 3-stage auto-retry logic with exponential backoff for handling intermittent network or server issues.
+*   **Render Optimization**: Intelligent "Waking up server" status tracking specifically optimized for Render cold starts.
+- **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
+
+### 🔒 Security & Presence
+- **JWT Authentication**: Secure sessions with unified token management.
+- **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
+- **Haptic Feedback**: Integrated tactile responses for a superior mobile feel.
+
+---
 
 ## 🛠 Tech Stack
 
-### Frontend (Mobile)
--   **React Native** (CLI)
--   **React Navigation** (Stack & Bottom Tabs)
--   **Axios** for REST APIs
--   **SockJS & STOMP** for WebSockets
--   **Firebase Messaging (FCM)** for notifications
--   **rn-emoji-keyboard** for expressive messaging
--   **AsyncStorage** for local data persistence
+| Frontend Layer | Technology |
+| :--- | :--- |
+| **Framework** | React Native (CLI) |
+| **Navigation** | React Navigation (Stack, Tabs) |
+| **Networking** | Axios with custom Interceptors & Retries |
+| **Real-time** | SockJS & STOMP Protocol |
+| **State** | Global UI Emitter & AppContext |
+| **UI Icons** | Ionicons (react-native-vector-icons) |
 
-### Backend (Server)
--   **Java Spring Boot 3**
--   **Spring Security** (JWT Authentication)
--   **Firebase Admin SDK** for FCM integration
--   **Spring Data MongoDB**
--   **WebSocket** (Message Broker)
-
-### Database
--   **MongoDB Atlas** (Cloud Database)
+| Backend Layer | Technology |
+| :--- | :--- |
+| **Framework** | Java Spring Boot 3 |
+| **Security** | Spring Security + JWT |
+| **Database** | Spring Data MongoDB |
+| **Messaging** | Spring WebSockets (Broker) |
+| **Cloud** | Firebase Admin SDK (FCM) |
+| **Signaling** | Agora Interactive SDK |
 
 ---
 
 ## 🚀 Setup & Installation
 
 ### Prerequisites
--   Node.js & npm / Yarn
--   Java JDK 17+
--   Android Studio (for Emulator & SDK)
--   MongoDB Atlas Account
+- Node.js & npm / Yarn
+- Java JDK 17+
+- Android Studio (for Emulator & SDK)
+- MongoDB Atlas Account
 
 ### 1. Backend Setup (Spring Boot)
 1.  Navigate to the `backend` directory:
     ```bash
     cd backend
     ```
-2.  Configure backend environment variables. Optional features (FCM, calling) require additional secrets.
+2.  Configure backend environment variables.
     ```bash
     MONGODB_URI=<your-mongodb-connection-string>
     JWT_SECRET=<your-long-random-secret>
     
-    # Optional: Agora calling
+    # Optional features
     AGORA_APP_ID=<your-app-id>
     AGORA_APP_CERTIFICATE=<your-app-certificate>
-    
-    # Optional: Firebase (FCM/Auth)
-    FIREBASE_SERVICE_ACCOUNT_JSON=<full-json-string> 
-    # OR
-    FIREBASE_SERVICE_ACCOUNT_PATH=<relative-path-to-file>
+    FIREBASE_SERVICE_ACCOUNT_JSON=<full-json-string>
     ```
 3.  Run the application:
     ```bash
     mvn spring-boot:run
     ```
-    The server will start on `http://localhost:8080`.
 
 ### 2. Frontend Setup (React Native)
 1.  Navigate to the `frontend` directory:
     ```bash
     cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
     npm install
     ```
-3.  **FCM Setup**: Place your `google-services.json` in `frontend/android/app/`.
-4.  **Configure API URL**: Update `frontend/src/config/apiConfig.js` so `DEVICE_LAN_HOST` matches your PC Wi-Fi IP.
-5.  Start Metro Bundler:
+2.  **FCM Setup**: Place your `google-services.json` in `frontend/android/app/`.
+3.  **Configure API URL**: Ensure `frontend/src/config/api.js` is set to your preferred endpoint.
+4.  Start local development:
     ```bash
     npm start
-    ```
-6.  Run on Android:
-    ```bash
     npm run android
     ```
 
 ---
 
-## 📱 Running on Physical Device (APK)
+## 🐳 Deployment
 
-1.  **Generate Debug APK**:
-    ```bash
-    cd frontend/android
-    ./gradlew assembleDebug
-    ```
-    APK Location: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
+### Docker Deployment
+The backend is containerized for seamless scaling (no local Java/Maven required).
 
-2.  **Install & Configure**:
-    -   Connect Phone & PC to the **same Wi-Fi**.
-    -   Shake phone -> **Dev Settings** -> **Debug server host & port** -> Enter your PC IP.
-    -   Reload the app.
-
----
-
-## 🐳 Docker Deployment (Backend)
-
-The backend is containerized and can be built and run entirely using Docker (no local Java/Maven required).
-
-1.  **Build the Image**:
-    ```bash
-    cd backend
-    docker build -t chat-app-backend .
-    ```
-2.  **Run the Container**:
-    ```bash
-    docker run -e MONGODB_URI=<your-mongodb-connection-string> -e JWT_SECRET=<your-long-random-secret> -p 8080:8080 chat-app-backend
-    ```
+```bash
+cd backend
+docker build -t chat-app-backend .
+docker run -e MONGODB_URI=<uri> -e JWT_SECRET=<secret> -p 8080:8080 chat-app-backend
+```
 
 ### Render Deployment Notes
-
--   Set `MONGODB_URI` in Render. The backend also accepts `MONGO_URI`, `MONGO_URL`, `MONGODB_URL`, and `DATABASE_URL`.
--   Without a Mongo connection string, the backend falls back to `mongodb://localhost:27017/chatapp`, which fails inside Render unless MongoDB is running in the same container.
--   Set `JWT_SECRET` in Render.
--   Set `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` only if you want Agora token generation enabled.
--   Set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH` only if you want Firebase auth or FCM enabled.
--   The backend reads `PORT` from the environment so Render can detect the service correctly.
+- Set `MONGODB_URI` and `JWT_SECRET` in Render dashboard.
+- The backend automatically reads `PORT` from the environment for dynamic binding.
+- Built-in retry logic handles free-tier "cold starts" gracefully.
 
 ---
 
