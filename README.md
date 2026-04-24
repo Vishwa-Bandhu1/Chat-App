@@ -173,5 +173,28 @@ docker run -e MONGODB_URI=<uri> -e JWT_SECRET=<secret> -p 8080:8080 chat-app-bac
 
 ---
 
+## 📡 Real-time Communication (WebSocket & Signaling)
+
+The application utilizes **STOMP over WebSocket** for instantaneous data exchange and call signaling.
+
+### WebSocket Destinations
+
+| Type | Destination | Description |
+| :--- | :--- | :--- |
+| **Sub** | `/topic/messages/{userId}` | Broadcast topic for new message alerts. |
+| **Sub** | `/user/queue/messages` | User-specific queue for private messages. |
+| **Sub** | `/user/queue/calls` | Call signaling (Offer, Hangup, ICE). |
+| **Sub** | `/user/queue/typing` | Real-time typing indicators. |
+| **Pub** | `/app/typing` | Publish current typing status. |
+| **Pub** | `/app/call` | Publish call signaling packets. |
+
+### Call Signaling Flow
+1.  **Initiation**: Sender joins an Agora channel and publishes an `OFFER` signal via `/app/call`.
+2.  **Alert**: Receiver gets the `OFFER` via `/user/queue/calls` and displays the Incoming Call UI.
+3.  **Connection**: Upon acceptance, the Receiver joins the same Agora channel using a dynamically fetched token.
+4.  **Termination**: Either party can publish a `HANGUP` signal to gracefully close the session for both users.
+
+---
+
 ## 🤝 Contributing
 Feel free to fork this repository and submit pull requests.
