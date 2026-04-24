@@ -47,7 +47,7 @@ react {
 
     /* Hermes Commands */
     //   The hermes compiler command to run. By default it is 'hermesc'
-    // hermesCommand = "$rootDir/my-custom-hermesc/bin/hermesc"
+    // hermesCommand = "../../node_modules/react-native/sdks/hermesc/%OS-BIN%/hermesc"
 
     /* Hermes */
     hermesEnabled = true

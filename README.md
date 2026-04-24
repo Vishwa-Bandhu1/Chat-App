@@ -4,6 +4,31 @@ A high-performance, full-stack real-time chat application featuring a sleek dark
 
 ---
 
+## 📁 Project Structure
+
+```text
+├── backend/
+│   ├── src/main/java/com/chatapp/backend/
+│   │   ├── config/          # Security & WebSocket Configuration
+│   │   ├── controller/      # REST API Endpoints
+│   │   ├── model/           # MongoDB Entities
+│   │   ├── repository/      # Data Access Layer
+│   │   └── service/         # Business Logic & FCM Services
+│   ├── Dockerfile           # Backend Containerization
+│   └── pom.xml              # Maven Dependencies
+└── frontend/
+    ├── src/
+    │   ├── components/      # Reusable Global UI Components
+    │   ├── navigation/      # React Navigation Stack/Tabs
+    │   ├── screens/         # Feature Screens (Chat, Profile, etc.)
+    │   ├── services/        # API & WebSocket Clients
+    │   └── utils/           # Haptics, Global UI, & Helper Functions
+    ├── index.js             # Entry Point
+    └── App.jsx              # Root Component
+```
+
+---
+
 ## 🏗 System Architecture
 
 ```mermaid
