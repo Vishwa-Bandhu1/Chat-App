@@ -84,6 +84,8 @@ graph TD
 
 ### 🔒 Security & Presence
 - **JWT Authentication**: Secure sessions with unified token management.
+- **Production Hardening**: Enforced HTTPS-only traffic on Android and API URL validation for production builds.
+- **Health Monitoring**: Integrated `/api/health` heartbeat endpoint for service status tracking.
 - **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).
 - **Haptic Feedback**: Integrated tactile responses for a superior mobile feel.
 

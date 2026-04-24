@@ -3,7 +3,7 @@ import { ACTIVE_BASE_URL } from '../config/api';
 import { API_URLS } from '../config/apiConfig';
 import { GlobalUI } from '../utils/GlobalUI';
 
-const REQUEST_TIMEOUT_MS = 50000; // Increased to 50s for Render cold starts
+const REQUEST_TIMEOUT_MS = 90000; // Render free instances can need a long cold-start window.
 const MAX_RETRIES = 3;
 
 const apiClient = axios.create({
@@ -43,7 +43,7 @@ export const toApiErrorMessage = (error) => {
         return `Request timed out. The server might be waking up or struggling.`;
     }
     if (error.request) {
-        return `Network Error: Could not reach the server. Please check your connection.`;
+        return `Network Error: Could not reach ${ACTIVE_BASE_URL}. Please check your internet connection and make sure the production backend is awake.`;
     }
     return error.message || 'Error setting up request';
 };
