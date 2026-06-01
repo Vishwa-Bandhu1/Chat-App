@@ -1,3 +1,18 @@
+/*
+ * =============================================================================
+ * TEMPORARILY DISABLED — OTP Phone Number Authentication Screen
+ * =============================================================================
+ * This entire screen has been commented out to temporarily disable OTP-based
+ * phone authentication. The code is preserved intact so it can be easily
+ * uncommented and restored in the future.
+ *
+ * To re-enable:
+ * 1. Remove the opening and closing block comment markers
+ * 2. Re-import this screen in AppNavigator.jsx
+ * 3. Add it back to the unauthenticated navigation stack
+ * 4. Uncomment Firebase auth imports in AuthService.js
+ * =============================================================================
+
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,8 +22,8 @@ import AuthService from '../services/AuthService';
 
 const PhoneNumberScreen = ({ navigation }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [countryCode, setCountryCode] = useState(null); // 'US', 'IN', etc.
-    const [callingCode, setCallingCode] = useState(null); // '1', '91', etc.
+    const [countryCode, setCountryCode] = useState(null);
+    const [callingCode, setCallingCode] = useState(null);
     const [countryPickerVisible, setCountryPickerVisible] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -23,7 +38,6 @@ const PhoneNumberScreen = ({ navigation }) => {
             return;
         }
 
-        // Construct formatting based on country selected to validate intrinsically
         const fullNumber = `+${callingCode}${phoneNumber}`;
         const parsedNumber = parsePhoneNumberFromString(fullNumber, countryCode);
 
@@ -35,19 +49,14 @@ const PhoneNumberScreen = ({ navigation }) => {
         setLoading(true);
 
         try {
-            // Firebase Phone Auth requires the E.164 formatted number returned by libphonenumber-js
-            const formattedValue = parsedNumber.number; // e.g., +919033107654
-
+            const formattedValue = parsedNumber.number;
             const confirmation = await AuthService.signInWithPhoneNumber(formattedValue);
             setLoading(false);
-
-            // Pass the confirmation object and the formatted phone number to OTP screen
             navigation.navigate('OTP', { phoneNumber: formattedValue, confirmation });
         } catch (error) {
             console.error("PhoneNumberScreen Error:", error);
             setLoading(false);
 
-            // Handle specific Firebase errors
             let errorMessage = 'Failed to send OTP. Please try again.';
             if (error.code === 'auth/invalid-phone-number') {
                 errorMessage = 'The phone number entered is invalid.';
@@ -79,7 +88,6 @@ const PhoneNumberScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.form}>
-                    {/* Hidden Country Picker Component managed by state */}
                     <CountryPicker
                         withFilter
                         withFlag
@@ -91,12 +99,11 @@ const PhoneNumberScreen = ({ navigation }) => {
                             setCallingCode(country.callingCode[0]);
                         }}
                         onClose={() => setCountryPickerVisible(false)}
-                        countryCode={countryCode || 'IN'} // Default initial modal scroll position
-                        containerButtonStyle={{ display: 'none' }} // Hide default trigger
+                        countryCode={countryCode || 'IN'}
+                        containerButtonStyle={{ display: 'none' }}
                     />
 
                     {!countryCode ? (
-                        // 1. Forced Explicit Country Selection State 
                         <TouchableOpacity
                             style={styles.selectCountryButton}
                             onPress={() => setCountryPickerVisible(true)}
@@ -104,7 +111,6 @@ const PhoneNumberScreen = ({ navigation }) => {
                             <Text style={styles.selectCountryText}>Tap to Select Country First</Text>
                         </TouchableOpacity>
                     ) : (
-                        // 2. Phone Input State (only shown AFTER a country is selected)
                         <View style={styles.phoneContainer}>
                             <TouchableOpacity
                                 style={styles.countryPickerTrigger}
@@ -115,7 +121,7 @@ const PhoneNumberScreen = ({ navigation }) => {
                                     withFlag
                                     withFilter={false}
                                     withCallingCode={false}
-                                    onSelect={() => { }} // Managed by main picker above
+                                    onSelect={() => { }}
                                     containerButtonStyle={{ paddingRight: 5 }}
                                 />
                                 <Text style={styles.callingCodeText}>+{callingCode}</Text>
@@ -155,117 +161,28 @@ const PhoneNumberScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    keyboardView: {
-        flex: 1,
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 40,
-    },
-    header: {
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#00A884',
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#333',
-        textAlign: 'center',
-        paddingHorizontal: 20,
-        lineHeight: 20,
-    },
-    form: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    selectCountryButton: {
-        width: '100%',
-        backgroundColor: '#f0f0f0',
-        padding: 18,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    selectCountryText: {
-        fontSize: 16,
-        color: '#00A884',
-        fontWeight: 'bold',
-    },
-    phoneContainer: {
-        flexDirection: 'row',
-        width: '100%',
-        height: 60,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        overflow: 'hidden',
-    },
-    countryPickerTrigger: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        height: '100%',
-        borderRightWidth: 1,
-        borderRightColor: '#ddd',
-        backgroundColor: '#f9f9f9',
-    },
-    callingCodeText: {
-        fontSize: 16,
-        color: '#333',
-        fontWeight: '500',
-    },
-    textInput: {
-        flex: 1,
-        fontSize: 18,
-        color: '#333',
-        paddingHorizontal: 15,
-        height: '100%',
-    },
-    carrierText: {
-        marginTop: 20,
-        color: '#666',
-        fontSize: 12,
-    },
-    footer: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    button: {
-        backgroundColor: '#00A884',
-        paddingVertical: 12,
-        paddingHorizontal: 30,
-        borderRadius: 25,
-        width: '80%',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    buttonDisabled: {
-        backgroundColor: '#ccc',
-        shadowOpacity: 0,
-        elevation: 0,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    container: { flex: 1, backgroundColor: '#fff' },
+    keyboardView: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 40 },
+    header: { alignItems: 'center', marginTop: 20 },
+    title: { fontSize: 20, fontWeight: 'bold', color: '#00A884', marginBottom: 10 },
+    subtitle: { fontSize: 14, color: '#333', textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
+    form: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    selectCountryButton: { width: '100%', backgroundColor: '#f0f0f0', padding: 18, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', justifyContent: 'center' },
+    selectCountryText: { fontSize: 16, color: '#00A884', fontWeight: 'bold' },
+    phoneContainer: { flexDirection: 'row', width: '100%', height: 60, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', backgroundColor: '#fff', overflow: 'hidden' },
+    countryPickerTrigger: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: '100%', borderRightWidth: 1, borderRightColor: '#ddd', backgroundColor: '#f9f9f9' },
+    callingCodeText: { fontSize: 16, color: '#333', fontWeight: '500' },
+    textInput: { flex: 1, fontSize: 18, color: '#333', paddingHorizontal: 15, height: '100%' },
+    carrierText: { marginTop: 20, color: '#666', fontSize: 12 },
+    footer: { alignItems: 'center', marginBottom: 20 },
+    button: { backgroundColor: '#00A884', paddingVertical: 12, paddingHorizontal: 30, borderRadius: 25, width: '80%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 2 },
+    buttonDisabled: { backgroundColor: '#ccc', shadowOpacity: 0, elevation: 0 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default PhoneNumberScreen;
+
+*/
+
+// Placeholder export while OTP auth is disabled
+export default function PhoneNumberScreen() { return null; }

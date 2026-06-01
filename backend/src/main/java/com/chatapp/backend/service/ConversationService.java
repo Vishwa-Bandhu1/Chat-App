@@ -7,7 +7,6 @@ import com.chatapp.backend.repository.ConversationRepository;
 import com.chatapp.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;

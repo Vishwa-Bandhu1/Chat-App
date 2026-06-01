@@ -83,7 +83,8 @@ graph TD
 - **Offline Support**: Local message caching using AsyncStorage for a seamless experience.
 
 ### 🔒 Security & Presence
-- **JWT Authentication**: Secure sessions with unified token management.
+- **JWT Authentication**: Standardized secure email/username and password auth sessions with unified token management (OTP/Phone auth screens preserved as placeholders).
+- **Agora Voice/Video Calling**: Seamless real-time calling integration using Agora Interactive SDK, robust STOMP signaling listeners, and automated call state synchronization.
 - **Production Hardening**: Enforced HTTPS-only traffic on Android and API URL validation for production builds.
 - **Health Monitoring**: Integrated `/api/health` heartbeat endpoint for service status tracking.
 - **Online Presence**: Real-time status tracking (Online/Offline/Last Seen).

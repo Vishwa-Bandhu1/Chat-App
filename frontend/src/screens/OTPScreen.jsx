@@ -1,3 +1,18 @@
+/*
+ * =============================================================================
+ * TEMPORARILY DISABLED — OTP Verification Screen
+ * =============================================================================
+ * This entire screen has been commented out to temporarily disable OTP-based
+ * phone authentication. The code is preserved intact so it can be easily
+ * uncommented and restored in the future.
+ *
+ * To re-enable:
+ * 1. Remove the opening and closing block comment markers
+ * 2. Re-import this screen in AppNavigator.jsx
+ * 3. Add it back to the unauthenticated navigation stack
+ * 4. Uncomment Firebase auth imports in AuthService.js
+ * =============================================================================
+
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,7 +20,6 @@ import { AuthContext } from '../navigation/AppNavigator';
 import AuthService from '../services/AuthService';
 
 const OTPScreen = ({ route, navigation }) => {
-    // confirmation object passed from PhoneNumberScreen
     const [confirmation, setConfirmation] = useState(route.params.confirmation);
     const { phoneNumber } = route.params;
 
@@ -16,7 +30,6 @@ const OTPScreen = ({ route, navigation }) => {
 
     const { signIn } = useContext(AuthContext);
 
-    // Timer for resend button
     useEffect(() => {
         let timer;
         if (resendTimer > 0) {
@@ -35,11 +48,8 @@ const OTPScreen = ({ route, navigation }) => {
 
         setLoading(true);
         try {
-            // 1. Verify OTP with Firebase
             const result = await confirmation.confirm(otp);
             const idToken = await result.user.getIdToken();
-
-            // 2. Verify ID Token with our Spring Boot Backend
             const data = await AuthService.verifyIdToken(phoneNumber, idToken);
             setLoading(false);
 
@@ -72,15 +82,14 @@ const OTPScreen = ({ route, navigation }) => {
     };
 
     const handleResend = async () => {
-        if (resendTimer > 0) return; // Prevent spamming
+        if (resendTimer > 0) return;
 
         setResendLoading(true);
         setOtp('');
         try {
-            // Re-trigger the SMS request
             const newConfirmation = await AuthService.signInWithPhoneNumber(phoneNumber);
             setConfirmation(newConfirmation);
-            setResendTimer(60); // Reset timer
+            setResendTimer(60);
             Alert.alert('Success', 'A new verification code has been sent.');
         } catch (error) {
             console.error('Error resending OTP:', error);
@@ -118,10 +127,7 @@ const OTPScreen = ({ route, navigation }) => {
                 {resendLoading ? (
                     <ActivityIndicator size="small" color="#007AFF" style={{ marginBottom: 30 }} />
                 ) : (
-                    <TouchableOpacity
-                        onPress={handleResend}
-                        disabled={resendTimer > 0}
-                    >
+                    <TouchableOpacity onPress={handleResend} disabled={resendTimer > 0}>
                         <Text style={[styles.resendText, resendTimer > 0 && styles.resendTextDisabled]}>
                             Didn't receive code? {resendTimer > 0 ? `Wait ${resendTimer}s` : 'Resend Code'}
                         </Text>
@@ -141,72 +147,21 @@ const OTPScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-    },
-    content: {
-        width: '100%',
-        alignItems: 'center',
-        paddingTop: 50,
-        paddingHorizontal: 20,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#00A884',
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#333',
-        textAlign: 'center',
-        marginBottom: 40,
-        lineHeight: 20,
-    },
-    inputContainer: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#00A884',
-        marginBottom: 30,
-        width: 150,
-        alignItems: 'center',
-    },
-    input: {
-        fontSize: 24,
-        letterSpacing: 8,
-        textAlign: 'center',
-        color: '#333',
-        width: '100%',
-        padding: 5,
-    },
-    resendText: {
-        color: '#007AFF',
-        marginBottom: 30,
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    resendTextDisabled: {
-        color: '#999',
-    },
-    button: {
-        backgroundColor: '#00A884',
-        paddingVertical: 12,
-        paddingHorizontal: 40,
-        borderRadius: 25,
-        width: '80%',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
+    container: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+    content: { width: '100%', alignItems: 'center', paddingTop: 50, paddingHorizontal: 20 },
+    title: { fontSize: 20, fontWeight: 'bold', color: '#00A884', marginBottom: 10 },
+    subtitle: { fontSize: 14, color: '#333', textAlign: 'center', marginBottom: 40, lineHeight: 20 },
+    inputContainer: { borderBottomWidth: 2, borderBottomColor: '#00A884', marginBottom: 30, width: 150, alignItems: 'center' },
+    input: { fontSize: 24, letterSpacing: 8, textAlign: 'center', color: '#333', width: '100%', padding: 5 },
+    resendText: { color: '#007AFF', marginBottom: 30, fontSize: 14, fontWeight: '500' },
+    resendTextDisabled: { color: '#999' },
+    button: { backgroundColor: '#00A884', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 25, width: '80%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 2 },
+    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default OTPScreen;
+
+*/
+
+// Placeholder export while OTP auth is disabled
+export default function OTPScreen() { return null; }
