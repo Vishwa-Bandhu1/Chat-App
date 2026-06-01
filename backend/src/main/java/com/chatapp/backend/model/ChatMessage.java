@@ -28,11 +28,15 @@ public class ChatMessage {
     private MessageType type;
     private String attachmentUrl;
 
+    private String callType; // VOICE, VIDEO
+    private String callStatus; // MISSED, INCOMING, OUTGOING, DECLINED, CANCELLED, COMPLETED
+    private Integer duration; // in seconds
+
     public enum MessageStatus {
         SENT, DELIVERED, SEEN
     }
 
     public enum MessageType {
-        TEXT, IMAGE, FILE, STICKER
+        TEXT, IMAGE, FILE, STICKER, CALL_EVENT
     }
 }

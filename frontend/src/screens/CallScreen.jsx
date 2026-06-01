@@ -94,11 +94,44 @@ const CallScreen = ({ route, navigation }) => {
         }
     };
 
+    const generateCallEvent = async (status) => {
+        if (isIncoming) return;
+
+        let messageText = '';
+        if (status === 'COMPLETED') messageText = `📞 ${isVideo ? 'Video' : 'Voice'} call`;
+        else if (status === 'DECLINED' || status === 'MISSED') messageText = `📞 Missed ${isVideo ? 'video' : 'voice'} call`;
+
+        const chatMessage = {
+            senderId: currentUserId,
+            receiverId: recipientId,
+            message: messageText,
+            type: 'CALL_EVENT',
+            callType: isVideo ? 'VIDEO' : 'VOICE',
+            callStatus: status,
+            duration: status === 'COMPLETED' ? callDuration : 0
+        };
+
+        try {
+            await ChatService.sendMessage(chatMessage, user.accessToken);
+        } catch (err) {
+            console.error('Failed to send call event', err);
+        }
+    };
+
     const handleSignalingMessage = async (data) => {
         try {
             switch (data.type) {
                 case 'HANGUP':
                     setCallStatus('Call ended');
+                    if (!isIncoming) {
+                        if (isConnected) {
+                            await generateCallEvent('COMPLETED');
+                        } else {
+                            if (data.reason === 'DECLINED') {
+                                await generateCallEvent('DECLINED');
+                            }
+                        }
+                    }
                     setTimeout(() => navigation.goBack(), 500);
                     break;
                 // Add other signals if needed
@@ -147,10 +180,13 @@ const CallScreen = ({ route, navigation }) => {
                     setCallStatus('Connected');
                     setIsConnected(true);
                 },
-                onUserOffline: (uid) => {
+                onUserOffline: async (uid) => {
                     console.log('Remote user offline:', uid);
                     setRemoteUid(0);
                     setCallStatus('User offline');
+                    if (!isIncoming && isConnected) {
+                        await generateCallEvent('COMPLETED');
+                    }
                     Alert.alert('Call Ended', 'The other user left the call.');
                     navigation.goBack();
                 },
@@ -207,8 +243,15 @@ const CallScreen = ({ route, navigation }) => {
         }
     };
 
-    const hangup = () => {
+    const hangup = async () => {
         sendSignal('HANGUP', {});
+        if (!isIncoming) {
+            if (isConnected) {
+                await generateCallEvent('COMPLETED');
+            } else {
+                await generateCallEvent('MISSED');
+            }
+        }
         cleanup();
         navigation.goBack();
     };

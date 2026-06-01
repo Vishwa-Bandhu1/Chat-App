@@ -146,6 +146,7 @@ export default function AppNavigator() {
                                             type: 'HANGUP',
                                             senderId: userId,
                                             recipientId: signal.senderId,
+                                            reason: 'DECLINED'
                                         }),
                                     });
                                 }

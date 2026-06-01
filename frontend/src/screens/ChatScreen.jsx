@@ -54,6 +54,13 @@ const formatMessageTime = (date) => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 };
 
+const formatDuration = (seconds) => {
+    if (!seconds) return '';
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+};
+
 const ChatScreen = ({ route, navigation }) => {
     const { name, recipientId, avatar } = route.params || { name: 'Chat', recipientId: '', avatar: null };
     const { user } = useContext(AuthContext);
@@ -339,7 +346,44 @@ const ChatScreen = ({ route, navigation }) => {
                                 ? (isFirstInGroup ? styles.myTop : (isLastInGroup ? styles.myBottom : styles.myMiddle))
                                 : (isFirstInGroup ? styles.theirTop : (isLastInGroup ? styles.theirBottom : styles.theirMiddle))
                         ]}>
-                        {item.type === 'IMAGE' ? (
+                        {item.type === 'CALL_EVENT' ? (() => {
+                            const isVoice = item.callType === 'VOICE';
+                            const iconName = isVoice ? 'call' : 'videocam';
+                            let text = '';
+                            let subtext = '';
+                            let iconColor = isMe ? '#FFFFFF' : '#EAEAEA';
+
+                            if (item.callStatus === 'COMPLETED') {
+                                text = `${isVoice ? 'Voice' : 'Video'} call`;
+                                subtext = formatDuration(item.duration);
+                            } else if (item.callStatus === 'DECLINED') {
+                                if (isMe) {
+                                    text = 'Declined';
+                                } else {
+                                    text = `Missed ${isVoice ? 'voice' : 'video'} call`;
+                                    iconColor = '#FF3B30';
+                                }
+                            } else if (item.callStatus === 'MISSED') {
+                                if (isMe) {
+                                    text = 'Cancelled';
+                                } else {
+                                    text = `Missed ${isVoice ? 'voice' : 'video'} call`;
+                                    iconColor = '#FF3B30';
+                                }
+                            }
+
+                            return (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                                        <Icon name={iconName} size={20} color={iconColor} />
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText, { fontWeight: '600' }]}>{text}</Text>
+                                        {subtext ? <Text style={[styles.timeText, isMe ? styles.myTimeText : styles.theirTimeText, { marginTop: 2 }]}>{subtext}</Text> : null}
+                                    </View>
+                                </View>
+                            );
+                        })() : item.type === 'IMAGE' ? (
                             <Image source={{ uri: msgContent }} style={styles.imageMsg} resizeMode="cover" />
                         ) : item.type === 'STICKER' ? (
                             <Image source={{ uri: msgContent }} style={styles.stickerMsg} resizeMode="contain" />

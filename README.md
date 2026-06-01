@@ -72,9 +72,10 @@ graph TD
 
 ### 💬 Messaging Experience
 - **Advanced UI**: Redesigned chat bubbles with grouping logic, inverted high-performance scrolling, and date separators.
-*   **Stickers & Emojis**: Fully integrated sticker packs and custom emoji keyboard.
-*   **Multimedia**: Support for image uploads and real-time document sharing.
-*   **Group Chat**: Dedicated conversation threads for groups with flexible metadata management.
+- **Stickers & Emojis**: Fully integrated sticker packs and custom emoji keyboard.
+- **Multimedia**: Support for image uploads and real-time document sharing.
+- **Group Chat**: Dedicated conversation threads for groups with flexible metadata management.
+- **Call Event Logs**: Inline call logs rendered directly inside the chat thread displaying call type, duration, and status (Completed, Missed, Declined, or Cancelled).
 
 ### 🛡 Core System
 - **Global UI Overlay**: Centralized animated loading overlays and premium toast notifications.
